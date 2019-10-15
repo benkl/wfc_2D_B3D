@@ -1,4 +1,4 @@
-import bpy
+# import bpy
 
 import random
 import math
@@ -322,6 +322,26 @@ def parse_example_matrix(matrix):
     return compatibilities, weights
 
 
+def blender_transitions(wfc_result_array):
+    output_tiles = []
+    for x in range(0, len(wfc_result_array)):
+        l_len = len(wfc_result_array[0])
+        for y in range(0, l_len):
+            blender_tile = ['L', 'L', 'L', 'L']
+            if x - 1 >= 0:
+                blender_tile[0] = wfc_result_array[x-1][y]
+            if y + 1 < l_len:
+                blender_tile[1] = wfc_result_array[x][y+1]
+            if x + 1 < len(wfc_result_array):
+                blender_tile[2] = wfc_result_array[x+1][y]
+            if y - 1 >= 0:
+                blender_tile[3] = wfc_result_array[x][y-1]
+            output_tiles.append(blender_tile)
+            print('huhu')
+
+    return output_tiles
+
+
 input_matrix = [
     ['L', 'L', 'L', 'L', 'L'],
     ['L', 'L', 'L', 'L', 'L'],
@@ -347,15 +367,24 @@ input_matrix2 = [
 # render_colors(output, colors)
 
 
-class WFC_OT_Runner(bpy.types.Operator):
-    bl_idname = "object.wfc_ot_runner"
-    bl_label = "WFC_OT_Runner"
+# class WFC_OT_Runner(bpy.types.Operator):
+#     bl_idname = "object.wfc_ot_runner"
+#     bl_label = "WFC_OT_Runner"
 
-    def execute(self, context):
+#     def execute(self, context):
 
-        compatibilities, weights = parse_example_matrix(input_matrix)
-        compatibility_oracle = CompatibilityOracle(compatibilities)
-        model = Model((10, 50), weights, compatibility_oracle)
-        output = model.run()
-        print(output)
-        return {'FINISHED'}
+#         compatibilities, weights = parse_example_matrix(input_matrix)
+#         compatibility_oracle = CompatibilityOracle(compatibilities)
+#         model = Model((10, 50), weights, compatibility_oracle)
+#         output = model.run()
+#         transition_output = blender_transitions(output)
+#         print(output)
+#         return {'FINISHED'}
+
+compatibilities, weights = parse_example_matrix(input_matrix)
+compatibility_oracle = CompatibilityOracle(compatibilities)
+model = Model((10, 50), weights, compatibility_oracle)
+output = model.run()
+transition_output = blender_transitions(output)
+print(output)
+print(len(transition_output), transition_output)
