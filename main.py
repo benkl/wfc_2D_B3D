@@ -1,7 +1,8 @@
-# import bpy
+import bpy
 
 import random
 import math
+import sys
 
 UP = (0, 1)
 LEFT = (-1, 0)
@@ -337,21 +338,20 @@ def blender_transitions(wfc_result_array):
             if y - 1 >= 0:
                 blender_tile[3] = wfc_result_array[x][y-1]
             output_tiles.append(blender_tile)
-            print('huhu')
 
     return output_tiles
 
 
 input_matrix = [
-    ['L', 'L', 'L', 'L', 'L'],
-    ['L', 'L', 'L', 'L', 'L'],
-    ['L', 'L', 'L', 'L', 'L'],
-    ['L', 'C', 'C', 'L', 'L'],
-    ['C', 'G', 'G', 'C', 'C'],
-    ['C', 'G', 'G', 'C', 'G'],
-    ['C', 'G', 'G', 'C', 'C'],
-    ['S', 'C', 'C', 'S', 'S'],
-    ['S', 'S', 'S', 'S', 'S'],
+    ['L', 'L', 'L', 'L', 'L', 'L', 'L'],
+    ['L', 'L', 'L', 'L', 'C', 'C', 'C'],
+    ['L', 'L', 'L', 'L', 'C', 'G', 'C'],
+    ['L', 'C', 'C', 'C', 'C', 'G', 'C'],
+    ['L', 'C', 'G', 'C', 'C', 'G', 'C'],
+    ['L', 'C', 'G', 'G', 'G', 'G', 'C'],
+    ['L', 'C', 'G', 'G', 'G', 'G', 'C'],
+    ['L', 'C', 'C', 'C', 'C', 'C', 'C'],
+    ['L', 'L', 'L', 'L', 'L', 'L', 'L'],
 ]
 input_matrix2 = [
     ['A', 'A', 'A', 'A'],
@@ -367,24 +367,78 @@ input_matrix2 = [
 # render_colors(output, colors)
 
 
-# class WFC_OT_Runner(bpy.types.Operator):
-#     bl_idname = "object.wfc_ot_runner"
-#     bl_label = "WFC_OT_Runner"
+class WFC_OT_Runner(bpy.types.Operator):
+    bl_idname = "object.wfc_ot_runner"
+    bl_label = "WFC_OT_Runner"
 
-#     def execute(self, context):
+    def execute(self, context):
 
-#         compatibilities, weights = parse_example_matrix(input_matrix)
-#         compatibility_oracle = CompatibilityOracle(compatibilities)
-#         model = Model((10, 50), weights, compatibility_oracle)
-#         output = model.run()
-#         transition_output = blender_transitions(output)
-#         print(output)
-#         return {'FINISHED'}
+        compatibilities, weights = parse_example_matrix(input_matrix)
+        compatibility_oracle = CompatibilityOracle(compatibilities)
+        model = Model((10, 50), weights, compatibility_oracle)
+        output = model.run()
+        transition_output = blender_transitions(output)
+        print(output)
+        print(get_tiles(output))
+        block_placer(output)
+        return {'FINISHED'}
 
-compatibilities, weights = parse_example_matrix(input_matrix)
-compatibility_oracle = CompatibilityOracle(compatibilities)
-model = Model((10, 50), weights, compatibility_oracle)
-output = model.run()
-transition_output = blender_transitions(output)
-print(output)
-print(len(transition_output), transition_output)
+# compatibilities, weights = parse_example_matrix(input_matrix)
+# compatibility_oracle = CompatibilityOracle(compatibilities)
+# model = Model((10, 50), weights, compatibility_oracle)
+# output = model.run()
+# transition_output = blender_transitions(output)
+# print(output)
+# print(len(transition_output), transition_output)
+
+
+def get_tiles(tiles):
+    temp_tiles = []
+    l_len = len(tiles[0])
+    for x in range(0, len(tiles)):
+        for y in range(0, l_len):
+            if tiles[x][y] not in temp_tiles:
+                temp_tiles.append(tiles[x][y])
+            else:
+                pass
+    return temp_tiles
+
+
+def block_placer(output_array):
+    # Find Collection
+    seed = random.randrange(sys.maxsize)
+    result_name = 'Result ' + str(seed)
+
+    result_collection = bpy.data.collections.new(result_name)
+    tiles_collection = bpy.data.collections.new('Tiles')
+    # bpy.context.scene.collection.children.link(
+    #     result_collection)
+    l_len = len(output_array[0])
+    variants = get_tiles(output_array)
+
+    for t in range(0, len(variants)):
+        bpy.ops.mesh.primitive_plane_add(location=(t, -5, 0), size=1)
+        basemesh = bpy.context.object
+        basemesh.name = variants[t]
+        bpy.data.collections['Tiles'].objects.link(basemesh)
+        tiles_collection.objects.link(basemesh)
+        print(t)
+
+    for x in range(0, len(output_array)):
+            # in the cell
+        for y in range(0, l_len):
+            output_array[x][y]
+            srcobj = tiles_collection.objects[output_array[x][y]]
+            # if srcobj.type == 'MESH':
+            #     print('mesh')
+            basemesh = srcobj.copy()
+            basemesh.data = srcobj.data
+            basemesh.location = (x, y, 0)
+            result_collection.objects.link(basemesh)
+            # else:
+            #     pass
+
+            # set mesh name
+            basemesh = bpy.context.object
+            basemesh.name = output_array[x][y]
+    return
