@@ -409,19 +409,21 @@ def block_placer(output_array):
     seed = random.randrange(sys.maxsize)
     result_name = 'Result ' + str(seed)
 
-    result_collection = bpy.data.collections.new(result_name)
     tiles_collection = bpy.data.collections.new('Tiles')
-    # bpy.context.scene.collection.children.link(
-    #     result_collection)
+    bpy.context.scene.collection.children.link(tiles_collection)
+
     l_len = len(output_array[0])
     variants = get_tiles(output_array)
 
+    result_collection = bpy.data.collections.new(result_name)
+    bpy.context.scene.collection.children.link(result_collection)
     for t in range(0, len(variants)):
         bpy.ops.mesh.primitive_plane_add(location=(t, -5, 0), size=1)
         basemesh = bpy.context.object
         basemesh.name = variants[t]
-        bpy.data.collections['Tiles'].objects.link(basemesh)
+        # bpy.data.collections['Tiles'].objects.link(basemesh)
         tiles_collection.objects.link(basemesh)
+        # bpy.context.scene.collection.children.unlink(basemesh)
         print(t)
 
     for x in range(0, len(output_array)):
@@ -429,16 +431,16 @@ def block_placer(output_array):
         for y in range(0, l_len):
             output_array[x][y]
             srcobj = tiles_collection.objects[output_array[x][y]]
-            # if srcobj.type == 'MESH':
-            #     print('mesh')
-            basemesh = srcobj.copy()
-            basemesh.data = srcobj.data
-            basemesh.location = (x, y, 0)
-            result_collection.objects.link(basemesh)
-            # else:
-            #     pass
+            if srcobj.type == 'MESH':
+                print('mesh')
+                copymesh = srcobj.copy()
+                copymesh.data = srcobj.data
+                copymesh = bpy.context.object
+                copymesh.name = output_array[x][y] + str((x + 1) * (y + 1))
+                copymesh.location = (x, y, 0)
+                result_collection.objects.link(copymesh)
+            else:
+                pass
 
-            # set mesh name
-            basemesh = bpy.context.object
-            basemesh.name = output_array[x][y]
+        # set mesh name
     return
