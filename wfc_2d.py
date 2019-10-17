@@ -512,8 +512,17 @@ class WFC_OT_Runner_2(bpy.types.Operator):
         # plot_patterns([Pattern.from_index(i).to_image() for i in legal_patterns])
 
         # fig, ax = plt.subplots()
-        image = wfc.get_image()
-        print(image)
+        # image = wfc.get_image()
+    #  im = show(image)
+        while True:
+            done = wfc.step()
+            if done:
+                break
+            image = wfc.get_image()
+            print(image)
+
+            if image.shape[0] == 1:
+                image = np.squeeze(image, axis=0)
         # block_placer(image)
 
         # im = show(image)
