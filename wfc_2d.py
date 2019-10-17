@@ -446,7 +446,8 @@ def load_sample(path):
     # > This would read the image
     # sample = plt.imread(path)
     # print(sample.shape)
-    sample = np.full((8, 8, 3), .5)
+    sample = path
+    print('samples?')
     # print(sample)
     # Expand dim to 3D
     sample = np.expand_dims(sample, axis=0)
@@ -470,11 +471,37 @@ class WFC_OT_Runner_2(bpy.types.Operator):
     def execute(self, context):
         grid_size = (1, 30, 30)
         pattern_size = (1, 2, 2)
-        print(bpy.context.scene.wfc_vars.wfc_images)
-        sample = load_sample('samples/blue.png')
+        img_name = bpy.context.scene.wfc_vars.wfc_images
+        img = bpy.data.images[img_name]
+        img_source_w = img.size[0]
+        img_source_h = img.size[1]
+        img_target = np.full((img_source_w, img_source_h, 3), .5)
+        img_source_array = img.pixels[:]
+        y = 0
+        for height_i in range(0, img_source_h):
+
+            x = 0
+            for width_i in range(0, img_source_w):
+                x = x + 1
+
+                # Get pixel position in flat array
+                colar = (x + (y * img_source_w)) * 4
+
+                # Set color values at current Pixel
+
+                # a = round(tfac[colar - 1], 2)
+                r = round(img_source_array[colar - 4], 4)
+                g = round(img_source_array[colar - 3], 4)
+                b = round(img_source_array[colar - 2], 4)
+                img_target[height_i][width_i][0] = r
+                img_target[height_i][width_i][1] = g
+                img_target[height_i][width_i][2] = b
+
+        sample = load_sample(img_target)
         # print(type(sample), sample.shape)
         # show(sample)
         # plt.show()
+        print(sample)
 
         wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
         # plot_patterns(wfc.get_patterns(), 'patterns')
@@ -484,7 +511,7 @@ class WFC_OT_Runner_2(bpy.types.Operator):
         # plt.show()
         # plot_patterns([Pattern.from_index(i).to_image() for i in legal_patterns])
 
-        #fig, ax = plt.subplots()
+        # fig, ax = plt.subplots()
         image = wfc.get_image()
         print(image)
         # block_placer(image)
