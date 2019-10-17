@@ -464,7 +464,7 @@ def load_sample(path):
 
 class WFC_OT_Runner_2(bpy.types.Operator):
     bl_idname = "object.wfc_ot_runner_2"
-    bl_label = "WFC_OT_Runner_2"
+    bl_label = "Full WFC"
 
     def execute(self, context):
         grid_size = (1, 30, 30)
@@ -486,7 +486,8 @@ class WFC_OT_Runner_2(bpy.types.Operator):
         #fig, ax = plt.subplots()
         image = wfc.get_image()
         print(image)
-        block_placer(image)
+        # block_placer(image)
+
         # im = show(image)
         # while True:
         #     done = wfc.step()
@@ -537,6 +538,7 @@ def blender_transitions(wfc_result_array):
 
 def get_tiles(tiles):
     temp_tiles = np.unique(tiles)
+    print(temp_tiles)
     # l_len = len(tiles[0])
     # for x in range(0, len(tiles)):
     #     for y in range(0, l_len):
@@ -576,7 +578,7 @@ def block_placer(output_array):
     for x in range(0, len(output_array)):
             # in the cell
         for y in range(0, l_len):
-            print(output_array[x][y][0][0])
+            print(output_array[0][x][y])
             srcobj = tiles_collection.objects[output_array[x][y]]
             if srcobj.type == 'MESH':
                 print('mesh')

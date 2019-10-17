@@ -27,16 +27,20 @@ import bpy
 from . wfc_panel import WFC_PT_Panel
 from . main import WFC_OT_Runner
 from . wfc_2d import WFC_OT_Runner_2
+from . wfc_panel import WFC_UI_variables
+from bpy.props import PointerProperty
 
 classes = (
     WFC_PT_Panel,
     WFC_OT_Runner,
-    WFC_OT_Runner_2
+    WFC_OT_Runner_2,
+    WFC_UI_variables
 )
 
 def register():
     for c in classes:
         bpy.utils.register_class(c)
+    bpy.types.Scene.wfc_vars = PointerProperty(type = WFC_UI_variables)
 
 
 def unregister():

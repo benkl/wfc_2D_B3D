@@ -1,5 +1,7 @@
 import bpy
-from bpy.types import Panel
+from bpy.types import (Panel, PropertyGroup)
+from bpy.props import (FloatVectorProperty, FloatProperty,
+                       BoolProperty, PointerProperty, StringProperty, EnumProperty)
 
 
 class WFC_PT_Panel(bpy.types.Panel):
@@ -14,3 +16,16 @@ class WFC_PT_Panel(bpy.types.Panel):
         layout.label(text="Wave Function Collapse")
         layout.operator('object.wfc_ot_runner')
         layout.operator('object.wfc_ot_runner_2')
+        layout.operator("image.open", text="Add Pattern Source", icon="PLUS")
+        layout.prop(context.scene.wfc_vars, "wfc_images")
+
+
+class WFC_UI_variables(PropertyGroup):
+    def wfc_img_list(self, context):
+        return [(img.name,)*3 for img in bpy.data.images]
+
+    wfc_images: EnumProperty(
+        name="Pattern Source",
+        description="Selected source pattern image",
+        items=wfc_img_list
+    )

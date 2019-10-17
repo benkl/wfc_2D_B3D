@@ -413,7 +413,7 @@ input_matrix5 = [
 
 class WFC_OT_Runner(bpy.types.Operator):
     bl_idname = "object.wfc_ot_runner"
-    bl_label = "WFC_OT_Runner"
+    bl_label = "Modular WFC"
 
     def execute(self, context):
 
