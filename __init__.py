@@ -26,10 +26,12 @@ import bpy
 
 from . wfc_panel import WFC_PT_Panel
 from . main import WFC_OT_Runner
+from . wfc_2d import WFC_OT_Runner_2
 
 classes = (
     WFC_PT_Panel,
-    WFC_OT_Runner
+    WFC_OT_Runner,
+    WFC_OT_Runner_2
 )
 
 def register():

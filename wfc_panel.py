@@ -13,3 +13,4 @@ class WFC_PT_Panel(bpy.types.Panel):
         layout = self.layout
         layout.label(text="Wave Function Collapse")
         layout.operator('object.wfc_ot_runner')
+        layout.operator('object.wfc_ot_runner_2')
