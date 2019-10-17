@@ -363,6 +363,50 @@ input_matrix2 = [
     ['A', 'C', 'C', 'A'],
 ]
 
+input_matrix3 = [
+    ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
+    ['A', 'B', 'B', 'D', 'D', 'D', 'D', 'A', 'G', 'G', 'G', 'A'],
+    ['A', 'B', 'B', 'D', 'D', 'D', 'D', 'A', 'G', 'G', 'G', 'A'],
+    ['A', 'A', 'A', 'A', 'A', 'D', 'D', 'A', 'G', 'G', 'G', 'A'],
+    ['A', 'C', 'C', 'C', 'A', 'D', 'D', 'A', 'G', 'G', 'G', 'A'],
+    ['A', 'C', 'C', 'C', 'A', 'D', 'D', 'A', 'G', 'G', 'G', 'A'],
+    ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
+    ['A', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'F', 'F', 'F', 'A'],
+    ['A', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'F', 'F', 'F', 'A'],
+    ['A', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'F', 'F', 'F', 'A'],
+    ['A', 'E', 'E', 'E', 'E', 'E', 'E', 'A', 'F', 'F', 'F', 'A'],
+    ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
+]
+input_matrix4 = [
+    ['A', 'A', 'A', 'A', 'D', 'D', 'D', 'D'],
+    ['A', 'B', 'B', 'A', 'D', 'E', 'E', 'D'],
+    ['A', 'B', 'B', 'A', 'D', 'E', 'E', 'D'],
+    ['A', 'A', 'A', 'A', 'D', 'E', 'E', 'D'],
+    ['C', 'C', 'C', 'C', 'D', 'D', 'D', 'D'],
+    ['C', 'F', 'F', 'C', 'A', 'A', 'A', 'A'],
+    ['C', 'F', 'F', 'C', 'A', 'B', 'B', 'A'],
+    ['C', 'F', 'F', 'C', 'A', 'A', 'A', 'A'],
+    ['C', 'C', 'C', 'C', 'G', 'G', 'G', 'G'],
+    ['D', 'D', 'D', 'D', 'G', 'H', 'H', 'G'],
+    ['D', 'E', 'E', 'D', 'G', 'H', 'H', 'G'],
+    ['D', 'D', 'D', 'D', 'G', 'G', 'G', 'G'],
+]
+
+input_matrix5 = [
+    ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+    ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+    ['A', 'B', 'B', 'B', 'B', 'B', 'A', 'B'],
+    ['A', 'A', 'B', 'B', 'B', 'A', 'A', 'A'],
+    ['A', 'A', 'A', 'B', 'A', 'A', 'A', 'A'],
+    ['A', 'D', 'A', 'A', 'A', 'A', 'A', 'A'],
+    ['D', 'D', 'D', 'A', 'A', 'A', 'A', 'A'],
+    ['A', 'D', 'A', 'A', 'A', 'A', 'A', 'A'],
+    ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
+    ['A', 'A', 'A', 'A', 'A', 'C', 'C', 'A'],
+    ['C', 'A', 'C', 'C', 'C', 'C', 'C', 'C'],
+    ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'],
+]
+
 
 # render_colors(output, colors)
 
@@ -373,7 +417,7 @@ class WFC_OT_Runner(bpy.types.Operator):
 
     def execute(self, context):
 
-        compatibilities, weights = parse_example_matrix(input_matrix)
+        compatibilities, weights = parse_example_matrix(input_matrix5)
         compatibility_oracle = CompatibilityOracle(compatibilities)
         model = Model((10, 50), weights, compatibility_oracle)
         output = model.run()
@@ -409,12 +453,14 @@ def block_placer(output_array):
     seed = random.randrange(sys.maxsize)
     result_name = 'Result ' + str(seed)
 
-    tiles_collection = bpy.data.collections.new('Tiles')
-    bpy.context.scene.collection.children.link(tiles_collection)
+    if (bpy.data.collections.find('Tiles') == True):
+        tiles_collection = bpy.data.collections['Tiles']
+    else:
+        tiles_collection = bpy.data.collections.new('Tiles')
 
+    bpy.context.scene.collection.children.link(tiles_collection)
     l_len = len(output_array[0])
     variants = get_tiles(output_array)
-
     result_collection = bpy.data.collections.new(result_name)
     bpy.context.scene.collection.children.link(result_collection)
     for t in range(0, len(variants)):
@@ -429,14 +475,13 @@ def block_placer(output_array):
     for x in range(0, len(output_array)):
             # in the cell
         for y in range(0, l_len):
-            output_array[x][y]
             srcobj = tiles_collection.objects[output_array[x][y]]
             if srcobj.type == 'MESH':
                 print('mesh')
                 copymesh = srcobj.copy()
-                copymesh.data = srcobj.data
-                copymesh = bpy.context.object
                 copymesh.name = output_array[x][y] + str((x + 1) * (y + 1))
+                copymesh.data = srcobj.data
+                # copymesh = bpy.context.object
                 copymesh.location = (x, y, 0)
                 result_collection.objects.link(copymesh)
             else:
