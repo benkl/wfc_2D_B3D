@@ -4,7 +4,7 @@ An example of using the wave function collapse with 2D image.
 """
 
 # import matplotlib.pyplot as plt
-from multiprocessing import Pool
+# from multiprocessing import Pool
 import time
 import os
 import numpy as np
@@ -157,17 +157,38 @@ class Propagator:
               (time.time() - start_time))
 
     def precompute_legal_patterns(self):
-        pool = Pool(os.cpu_count())
+        # pool = Pool(os.cpu_count())
+        # pool = Pool(1)
 
         patterns_offsets = []
+        # patterns_var = []
+        # offsets_var = []
         for pattern in self.patterns:
+            # patterns_var.append(pattern[0][0])
             for offset in self.offsets:
                 patterns_offsets.append((pattern, offset))
+                # offsets_var.append(pattern[0][1])
 
-        patterns_compatibility = pool.starmap(
-            self.legal_patterns, patterns_offsets)
-        pool.close()
-        pool.join()
+        # patterns_compatibility = pool.starmap(
+        #     self.legal_patterns, patterns_offsets)
+        # pool.close()
+        # pool.join()
+        patterns_compatibility = []
+        for i, pattern in enumerate(patterns_offsets):
+            # print(i)
+            # print(patterns_offsets[0][0])
+            patterns_compatibility.append(self.legal_patterns(
+                patterns_offsets[i][0], patterns_offsets[i][1]))
+
+        # print(type(patterns_compatibility))
+        # print(patterns_compatibility)
+
+        # print(patterns_compatibility)
+
+        # print(patterns_compatibility[0][1])
+        # print(patterns_compatibility[1])
+
+        # patterns_compatibility = self.legal_patterns(patterns_var, offsets_var)
 
         for pattern_index, offset, legal_patterns in patterns_compatibility:
             self.patterns[pattern_index].set_legal_patterns(
@@ -175,6 +196,8 @@ class Propagator:
 
     def legal_patterns(self, pattern, offset):
         legal_patt = []
+        # print(pattern)
+        # print(offset)
         for candidate_pattern in self.patterns:
             if pattern.is_compatible(candidate_pattern, offset):
                 legal_patt.append(candidate_pattern.index)
@@ -417,6 +440,7 @@ class Cell:
 
 
 def load_sample(path):
+    # > This would read the image
     # sample = plt.imread(path)
     # print(sample.shape)
     sample = np.full((8, 8, 3), .5)
@@ -454,6 +478,7 @@ class WFC_OT_Runner_2(bpy.types.Operator):
 
         #fig, ax = plt.subplots()
         image = wfc.get_image()
+        print(image)
         # im = show(image)
         # while True:
         #     done = wfc.step()
@@ -471,3 +496,13 @@ class WFC_OT_Runner_2(bpy.types.Operator):
 
         # plt.show()
         return {'FINISHED'}
+
+# if __name__ == '__main__':
+# grid_size = (1, 30, 30)
+# pattern_size = (1, 2, 2)
+
+# sample = load_sample('samples/blue.png')
+# wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
+
+# image = wfc.get_image()
+# print(image)
