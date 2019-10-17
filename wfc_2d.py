@@ -141,7 +141,7 @@ class Grid:
     def print_allowed_pattern_count(self):
         grid_allowed_patterns = np.vectorize(
             lambda c: len(c.allowed_patterns))(self.grid)
-        print(grid_allowed_patterns)
+        # print(grid_allowed_patterns)
 
 
 class Propagator:
@@ -447,7 +447,6 @@ def load_sample(path):
     # sample = plt.imread(path)
     # print(sample.shape)
     sample = path
-    print('samples?')
     # print(sample)
     # Expand dim to 3D
     sample = np.expand_dims(sample, axis=0)
@@ -478,6 +477,7 @@ class WFC_OT_Runner_2(bpy.types.Operator):
         img_target = np.full((img_source_w, img_source_h, 3), .5)
         img_source_array = img.pixels[:]
         y = 0
+        # print(img_source_array)
         for height_i in range(0, img_source_h):
 
             x = 0
@@ -485,35 +485,28 @@ class WFC_OT_Runner_2(bpy.types.Operator):
                 x = x + 1
 
                 # Get pixel position in flat array
-                colar = (x + (y * img_source_w)) * 4
+                colar = (width_i + (height_i * img_source_w)) * 4
 
                 # Set color values at current Pixel
 
                 # a = round(tfac[colar - 1], 2)
-                r = round(img_source_array[colar - 4], 4)
-                g = round(img_source_array[colar - 3], 4)
-                b = round(img_source_array[colar - 2], 4)
+                r = round(img_source_array[colar - 4], 8)
+                g = round(img_source_array[colar - 3], 8)
+                b = round(img_source_array[colar - 2], 8)
+                a = round(img_source_array[colar - 1], 8)
                 img_target[height_i][width_i][0] = r
                 img_target[height_i][width_i][1] = g
                 img_target[height_i][width_i][2] = b
-
+                # print(r, g, b, a)
+            y = y + 1
         sample = load_sample(img_target)
         # print(type(sample), sample.shape)
-        # show(sample)
-        # plt.show()
-        print(sample)
 
         wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
         # plot_patterns(wfc.get_patterns(), 'patterns')
 
-        # _, _, legal_patterns = wfc.propagator.legal_patterns(wfc.patterns[2], (0, 0, 1))
-        # show(Pattern.from_index(2).to_image())
-        # plt.show()
-        # plot_patterns([Pattern.from_index(i).to_image() for i in legal_patterns])
-
-        # fig, ax = plt.subplots()
         # image = wfc.get_image()
-    #  im = show(image)
+
         while True:
             done = wfc.step()
             if done:
@@ -524,34 +517,7 @@ class WFC_OT_Runner_2(bpy.types.Operator):
             if image.shape[0] == 1:
                 image = np.squeeze(image, axis=0)
         # block_placer(image)
-
-        # im = show(image)
-        # while True:
-        #     done = wfc.step()
-        #     if done:
-        #         print(image)
-        #         break
-        #     image = wfc.get_image()
-
-        #     if image.shape[0] == 1:
-        #         image = np.squeeze(image, axis=0)
-        # im.set_array(image)
-
-        # fig.canvas.draw()
-        # plt.pause(0.001)
-
-        # plt.show()
         return {'FINISHED'}
-
-# if __name__ == '__main__':
-# grid_size = (1, 30, 30)
-# pattern_size = (1, 2, 2)
-
-# sample = load_sample('samples/blue.png')
-# wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
-
-# image = wfc.get_image()
-# print(image)
 
 
 def blender_transitions(wfc_result_array):
@@ -572,10 +538,12 @@ def blender_transitions(wfc_result_array):
 
     return output_tiles
 
+# PART BELOW NOT WORKING TAKES CHANNEL VALUES INSTEAD OF PIXEL VALUES
+
 
 def get_tiles(tiles):
     temp_tiles = np.unique(tiles)
-    print(temp_tiles)
+    # print(temp_tiles)
     # l_len = len(tiles[0])
     # for x in range(0, len(tiles)):
     #     for y in range(0, l_len):
@@ -610,12 +578,12 @@ def block_placer(output_array):
         # bpy.data.collections['Tiles'].objects.link(basemesh)
         tiles_collection.objects.link(basemesh)
         # bpy.context.scene.collection.children.unlink(basemesh)
-        print(t)
+        # print(t)
 
     for x in range(0, len(output_array)):
             # in the cell
         for y in range(0, l_len):
-            print(output_array[0][x][y])
+            # print(output_array[0][x][y])
             srcobj = tiles_collection.objects[output_array[x][y]]
             if srcobj.type == 'MESH':
                 print('mesh')
