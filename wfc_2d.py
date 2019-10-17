@@ -11,6 +11,7 @@ import numpy as np
 import random
 import sys
 import bpy
+from . wfc_panel import WFC_UI_variables
 
 # def plot_patterns(patterns, title=''):
 #     fig = plt.figure(figsize=(8, 8))
@@ -469,7 +470,7 @@ class WFC_OT_Runner_2(bpy.types.Operator):
     def execute(self, context):
         grid_size = (1, 30, 30)
         pattern_size = (1, 2, 2)
-
+        print(bpy.context.scene.wfc_vars.wfc_images)
         sample = load_sample('samples/blue.png')
         # print(type(sample), sample.shape)
         # show(sample)
