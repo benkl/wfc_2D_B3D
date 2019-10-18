@@ -515,8 +515,8 @@ class WFC_OT_Runner_2(bpy.types.Operator):
             done = wfc.step()
             if done:
                 break
-            print(image)
             image = wfc.get_image()
+            print(image)
 
             if image.shape[0] == 1:
                 image = np.squeeze(image, axis=0)
