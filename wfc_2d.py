@@ -470,8 +470,12 @@ class WFC_OT_Runner_2(bpy.types.Operator):
     def execute(self, context):
         image_out_x = 30
         image_out_y = 30
-        grid_size = (1, image_out_y, image_out_x)
-        pattern_size = (1, 2, 2)
+        image_out_z = 1
+        grid_size = (image_out_z, image_out_y, image_out_x)
+        pat_x = 3
+        pat_y = 3
+        pat_z = 1
+        pattern_size = (pat_z, pat_y, pat_x)
         img_name = bpy.context.scene.wfc_vars.wfc_images
         img = bpy.data.images[img_name]
         img_source_w = img.size[0]
@@ -511,12 +515,12 @@ class WFC_OT_Runner_2(bpy.types.Operator):
             done = wfc.step()
             if done:
                 break
+            print(image)
             image = wfc.get_image()
 
             if image.shape[0] == 1:
                 image = np.squeeze(image, axis=0)
         # block_placer(image)
-        print(image[0])
         blender_image = bpy.data.images.new(
             "MyImage", width=image_out_x, height=image_out_y)
         pixels = [None] * image_out_x * image_out_y
