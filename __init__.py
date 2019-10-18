@@ -25,15 +25,13 @@ bl_info = {
 import bpy
 
 from . wfc_panel import WFC_PT_Panel
-from . main import WFC_OT_Runner
-from . wfc_2d import WFC_OT_Runner_2
+from . wfc_2d import WFC_OT_Runner
 from . wfc_panel import WFC_UI_variables
 from bpy.props import PointerProperty
 
 classes = (
     WFC_PT_Panel,
     WFC_OT_Runner,
-    WFC_OT_Runner_2,
     WFC_UI_variables
 )
 

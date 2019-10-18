@@ -463,8 +463,8 @@ def load_sample(path):
 #         return plt.imshow(np.squeeze(image, axis=0))
 
 
-class WFC_OT_Runner_2(bpy.types.Operator):
-    bl_idname = "object.wfc_ot_runner_2"
+class WFC_OT_Runner(bpy.types.Operator):
+    bl_idname = "object.wfc_ot_runner"
     bl_label = "Full WFC"
 
     def execute(self, context):
@@ -516,7 +516,7 @@ class WFC_OT_Runner_2(bpy.types.Operator):
             if done:
                 break
             image = wfc.get_image()
-            print(image)
+            print('Step done')
 
             if image.shape[0] == 1:
                 image = np.squeeze(image, axis=0)

@@ -15,7 +15,6 @@ class WFC_PT_Panel(bpy.types.Panel):
         layout = self.layout
         layout.label(text="Wave Function Collapse")
         layout.operator("object.wfc_ot_runner")
-        layout.operator("object.wfc_ot_runner_2")
         layout.operator("image.open", text="Add Pattern Source", icon="PLUS")
         layout.prop(context.scene.wfc_vars, "wfc_images")
 
