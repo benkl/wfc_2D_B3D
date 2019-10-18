@@ -468,7 +468,9 @@ class WFC_OT_Runner_2(bpy.types.Operator):
     bl_label = "Full WFC"
 
     def execute(self, context):
-        grid_size = (1, 30, 30)
+        image_out_x = 30
+        image_out_y = 30
+        grid_size = (1, image_out_y, image_out_x)
         pattern_size = (1, 2, 2)
         img_name = bpy.context.scene.wfc_vars.wfc_images
         img = bpy.data.images[img_name]
@@ -476,13 +478,11 @@ class WFC_OT_Runner_2(bpy.types.Operator):
         img_source_h = img.size[1]
         img_target = np.full((img_source_w, img_source_h, 3), .5)
         img_source_array = img.pixels[:]
-        y = 0
+
         # print(img_source_array)
         for height_i in range(0, img_source_h):
 
-            x = 0
             for width_i in range(0, img_source_w):
-                x = x + 1
 
                 # Get pixel position in flat array
                 colar = (width_i + (height_i * img_source_w)) * 4
@@ -494,11 +494,11 @@ class WFC_OT_Runner_2(bpy.types.Operator):
                 g = round(img_source_array[colar - 3], 8)
                 b = round(img_source_array[colar - 2], 8)
                 a = round(img_source_array[colar - 1], 8)
-                img_target[height_i][width_i][0] = r
-                img_target[height_i][width_i][1] = g
-                img_target[height_i][width_i][2] = b
+                img_target[width_i][height_i][0] = r
+                img_target[width_i][height_i][1] = g
+                img_target[width_i][height_i][2] = b
                 # print(r, g, b, a)
-            y = y + 1
+
         sample = load_sample(img_target)
         # print(type(sample), sample.shape)
 
@@ -512,11 +512,25 @@ class WFC_OT_Runner_2(bpy.types.Operator):
             if done:
                 break
             image = wfc.get_image()
-            print(image)
 
             if image.shape[0] == 1:
                 image = np.squeeze(image, axis=0)
         # block_placer(image)
+        print(image[0])
+        blender_image = bpy.data.images.new(
+            "MyImage", width=image_out_x, height=image_out_y)
+        pixels = [None] * image_out_x * image_out_y
+        for x in range(image_out_x):
+            for y in range(image_out_y):
+                r = image[y][x][0]
+                g = image[y][x][1]
+                b = image[y][x][2]
+                a = 1
+                pixels[(y * image_out_x) + x] = [r, g, b, a]
+
+        pixels = [chan for px in pixels for chan in px]
+        blender_image.pixels = pixels
+
         return {'FINISHED'}
 
 
