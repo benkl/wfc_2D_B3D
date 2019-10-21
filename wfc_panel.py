@@ -5,7 +5,7 @@ from bpy.props import (FloatVectorProperty, IntProperty,
 
 
 class WFC_PT_Panel(bpy.types.Panel):
-    bl_idname = "view3d.WFC_PT_Panel"
+    bl_idname = "WFC_PT_Panel"
     bl_label = "Wave Function Collapse"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
