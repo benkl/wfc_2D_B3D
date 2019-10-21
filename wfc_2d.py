@@ -11,7 +11,7 @@ import numpy as np
 import random
 import sys
 import bpy
-from . wfc_panel import WFC_UI_variables
+# from . wfc_panel import WFC_UI_variables
 
 # def plot_patterns(patterns, title=''):
 #     fig = plt.figure(figsize=(8, 8))
@@ -465,15 +465,15 @@ def load_sample(path):
 
 class WFC_OT_Runner(bpy.types.Operator):
     bl_idname = "object.wfc_ot_runner"
-    bl_label = "Full WFC"
+    bl_label = "Collapse"
 
     def execute(self, context):
-        image_out_x = 30
-        image_out_y = 30
+        image_out_x = bpy.context.scene.wfc_vars.wfc_resultx
+        image_out_y = bpy.context.scene.wfc_vars.wfc_resulty
         image_out_z = 1
         grid_size = (image_out_z, image_out_y, image_out_x)
-        pat_x = 3
-        pat_y = 3
+        pat_x = bpy.context.scene.wfc_vars.wfc_patternx
+        pat_y = bpy.context.scene.wfc_vars.wfc_patterny
         pat_z = 1
         pattern_size = (pat_z, pat_y, pat_x)
         img_name = bpy.context.scene.wfc_vars.wfc_images
