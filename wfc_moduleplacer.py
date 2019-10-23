@@ -82,3 +82,12 @@ def blender_transitions(wfc_result_array):
             output_tiles.append(blender_tile)
 
     return output_tiles
+
+
+class WFC_OT_Placer(bpy.types.Operator):
+    bl_idname = "object.wfc_ot_placer"
+    bl_label = "Place"
+
+    def execute(self, context):
+
+        return {'FINISHED'}

@@ -322,19 +322,25 @@ class Pattern:
             pattern_location = [range(d, pattern_size[i] + d)
                                 for i, d in enumerate(index)]
             pattern_data = sample[np.ix_(*pattern_location)]
-
+            flipdata = bpy.context.scene.wfc_vars.wfc_rotflip
             datas = [pattern_data, np.fliplr(pattern_data)]
-            if shape[1] > 1:  # is 2D
+            if shape[1] > 1 and flipdata == True:  # is 2D
                 datas.append(np.flipud(pattern_data))
                 datas.append(np.rot90(pattern_data, axes=(1, 2)))
                 datas.append(np.rot90(pattern_data, 2, axes=(1, 2)))
                 datas.append(np.rot90(pattern_data, 3, axes=(1, 2)))
 
-            if shape[0] > 1:  # is 3D
+            if shape[0] > 1 and flipdata == True:  # is 3D
                 datas.append(np.flipud(pattern_data))
                 datas.append(np.rot90(pattern_data, axes=(0, 2)))
                 datas.append(np.rot90(pattern_data, 2, axes=(0, 2)))
                 datas.append(np.rot90(pattern_data, 3, axes=(0, 2)))
+
+            if shape[1] > 1 and flipdata == False:  # is 2D
+                datas.append(pattern_data)
+
+            if shape[0] > 1 and flipdata == False:  # is 3D
+                datas.append(pattern_data)
 
             # Checking existence
             # TODO: more probability to multiple occurrences when observe phase
@@ -508,18 +514,20 @@ class WFC_OT_Runner(bpy.types.Operator):
 
         wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
         # plot_patterns(wfc.get_patterns(), 'patterns')
+        wfc.run()
+        image = wfc.get_image()
+        if image.shape[0] == 1:
+            image = np.squeeze(image, axis=0)
 
-        # image = wfc.get_image()
+        # while True:
+        #     done = wfc.step()
+        #     if done:
+        #         break
+        #     image = wfc.get_image()
+        #     print('Step done')
 
-        while True:
-            done = wfc.step()
-            if done:
-                break
-            image = wfc.get_image()
-            print('Step done')
-
-            if image.shape[0] == 1:
-                image = np.squeeze(image, axis=0)
+        #     if image.shape[0] == 1:
+        #         image = np.squeeze(image, axis=0)
         # block_placer(image)
         blender_image = bpy.data.images.new(
             "MyImage", width=image_out_x, height=image_out_y)
