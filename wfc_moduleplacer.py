@@ -5,7 +5,7 @@ import bpy
 
 # PART BELOW NOT WORKING TAKES CHANNEL VALUES INSTEAD OF PIXEL VALUES
 
-
+"""
 def get_tiles(tiles):
     temp_tiles = np.unique(tiles)
     # print(temp_tiles)
@@ -82,6 +82,11 @@ def blender_transitions(wfc_result_array):
             output_tiles.append(blender_tile)
 
     return output_tiles
+"""
+
+
+def create_placer_modules(b3d_image):
+    return
 
 
 class WFC_OT_Placer(bpy.types.Operator):
@@ -89,5 +94,7 @@ class WFC_OT_Placer(bpy.types.Operator):
     bl_label = "Place"
 
     def execute(self, context):
-
+        img_name = bpy.context.scene.wfc_vars.wfc_images_placer
+        img = bpy.data.images[img_name]
+        create_placer_modules(img)
         return {'FINISHED'}

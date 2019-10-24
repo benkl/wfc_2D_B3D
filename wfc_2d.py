@@ -3,7 +3,6 @@ An example of using the wave function collapse with 2D image.
 
 """
 
-# import matplotlib.pyplot as plt
 # from multiprocessing import Pool
 import time
 import os
@@ -11,20 +10,6 @@ import numpy as np
 import random
 import sys
 import bpy
-# from . wfc_panel import WFC_UI_variables
-
-# def plot_patterns(patterns, title=''):
-#     fig = plt.figure(figsize=(8, 8))
-#     fig.suptitle(title, fontsize=16)
-#     columns = 4
-#     rows = 5
-#     for i in range(1, columns * rows + 1):
-#         if i > len(patterns):
-#             break
-#         fig.add_subplot(rows, columns, i)
-#         show(patterns[i - 1])
-
-#     plt.show()
 
 
 class WaveFunctionCollapse:
@@ -178,18 +163,8 @@ class Propagator:
         # pool.join()
         patterns_compatibility = []
         for i, pattern in enumerate(patterns_offsets):
-            # print(i)
-            # print(patterns_offsets[0][0])
             patterns_compatibility.append(self.legal_patterns(
                 patterns_offsets[i][0], patterns_offsets[i][1]))
-
-        # print(type(patterns_compatibility))
-        # print(patterns_compatibility)
-
-        # print(patterns_compatibility)
-
-        # print(patterns_compatibility[0][1])
-        # print(patterns_compatibility[1])
 
         # patterns_compatibility = self.legal_patterns(patterns_var, offsets_var)
 
@@ -199,8 +174,6 @@ class Propagator:
 
     def legal_patterns(self, pattern, offset):
         legal_patt = []
-        # print(pattern)
-        # print(offset)
         for candidate_pattern in self.patterns:
             if pattern.is_compatible(candidate_pattern, offset):
                 legal_patt.append(candidate_pattern.index)
@@ -464,10 +437,6 @@ def load_sample(path):
 # WELCOME TO BLENDER CITY #
 ###########################
 
-# def show(image):
-#     if image.shape[0] == 1:
-#         return plt.imshow(np.squeeze(image, axis=0))
-
 
 class WFC_OT_Runner(bpy.types.Operator):
     bl_idname = "object.wfc_ot_runner"
@@ -489,7 +458,6 @@ class WFC_OT_Runner(bpy.types.Operator):
         img_target = np.full((img_source_w, img_source_h, 3), .5)
         img_source_array = img.pixels[:]
 
-        # print(img_source_array)
         for height_i in range(0, img_source_h):
 
             for width_i in range(0, img_source_w):
@@ -499,7 +467,6 @@ class WFC_OT_Runner(bpy.types.Operator):
 
                 # Set color values at current Pixel
 
-                # a = round(tfac[colar - 1], 2)
                 r = round(img_source_array[colar - 4], 8)
                 g = round(img_source_array[colar - 3], 8)
                 b = round(img_source_array[colar - 2], 8)
@@ -510,36 +477,13 @@ class WFC_OT_Runner(bpy.types.Operator):
                 # print(r, g, b, a)
 
         sample = load_sample(img_target)
-        # print(type(sample), sample.shape)
 
         wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
-        # plot_patterns(wfc.get_patterns(), 'patterns')
+
         wfc.run()
         image = wfc.get_image()
         if image.shape[0] == 1:
             image = np.squeeze(image, axis=0)
-
-        # while True:
-        #     done = wfc.step()
-        #     if done:
-        #         break
-        #     image = wfc.get_image()
-        #     print('Step done')
-
-        #     if image.shape[0] == 1:
-        #         image = np.squeeze(image, axis=0)
-        # block_placer(image)
-
-        # blender_image = bpy.data.images.new(
-        #     "MyImage", width=image_out_x, height=image_out_y)
-        # pixels = [None] * image_out_x * image_out_y
-        # for x in range(image_out_x):
-        #     for y in range(image_out_y):
-        #         r = image[y][x][0]
-        #         g = image[y][x][1]
-        #         b = image[y][x][2]
-        #         a = 1
-        #         pixels[(y * image_out_x) + x] = [r, g, b, a]
 
         blender_image = bpy.data.images.new(
             "MyImage", width=image_out_y, height=image_out_x)
