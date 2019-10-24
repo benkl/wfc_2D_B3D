@@ -18,22 +18,23 @@ class WFC_PT_Panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         patternbox = layout.box()
-        patternbox.label(text="Rule settings")
+        patternbox.label(text="2D Image Collapse")
         patternbox.operator(
             "image.open", text="Add Pattern Source", icon="PLUS")
         patternbox.prop(context.scene.wfc_vars, "wfc_images")
-        patternbox.prop(context.scene.wfc_vars, "wfc_rotflip")
         patternrow = patternbox.row()
         patternrow.prop(context.scene.wfc_vars, "wfc_patternx")
         patternrow.prop(context.scene.wfc_vars, "wfc_patterny")
-        outputbox = layout.box()
-        outputbox.label(text="Output dimensions")
-        outputbox.prop(context.scene.wfc_vars, "wfc_resultx")
-        outputbox.prop(context.scene.wfc_vars, "wfc_resulty")
-        outputbox.operator("object.wfc_ot_runner", icon="PLAY")
+        patternbox.prop(context.scene.wfc_vars, "wfc_rotflip")
+        patternbox.prop(context.scene.wfc_vars, "wfc_resultx")
+        patternbox.prop(context.scene.wfc_vars, "wfc_resulty")
+        patternbox.operator("object.wfc_ot_runner", icon="PLAY")
         placerbox = layout.box()
-        placerbox.label(text="Module Instancer")
-        placerbox.operator("object.wfc_ot_placer")
+        placerbox.label(text="2D Module Instancer")
+        placerbox.operator(
+            "image.open", text="Add Placer Source", icon="PLUS")
+        placerbox.prop(context.scene.wfc_vars, "wfc_images_placer")
+        placerbox.operator("object.wfc_ot_placer", icon="PLAY")
 
 
 class WFC_UI_Variables(PropertyGroup):
@@ -42,18 +43,22 @@ class WFC_UI_Variables(PropertyGroup):
 
     wfc_images: EnumProperty(
         name="Pattern Source",
-        description="Selected source pattern image",
+        description="Selected source pattern image, PNG strongly recommended",
         items=wfc_img_list
     )
-
+    wfc_images_placer: EnumProperty(
+        name="Placer Source",
+        description="Selected pattern image to place",
+        items=wfc_img_list
+    )
     wfc_patternx: IntProperty(
         name="Pattern X",
-        default=2,
+        default=3,
         description="This defines how many neighbours are taken into account for rule creation. X-Dimension. 2-3 Recommended."
     )
     wfc_patterny: IntProperty(
         name="Pattern Y",
-        default=2,
+        default=3,
         description="This defines how many neighbours are taken into account for rule creation. Y-Dimension. 2-3 Recommended."
     )
     wfc_resultx: IntProperty(

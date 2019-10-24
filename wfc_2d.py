@@ -529,8 +529,20 @@ class WFC_OT_Runner(bpy.types.Operator):
         #     if image.shape[0] == 1:
         #         image = np.squeeze(image, axis=0)
         # block_placer(image)
+
+        # blender_image = bpy.data.images.new(
+        #     "MyImage", width=image_out_x, height=image_out_y)
+        # pixels = [None] * image_out_x * image_out_y
+        # for x in range(image_out_x):
+        #     for y in range(image_out_y):
+        #         r = image[y][x][0]
+        #         g = image[y][x][1]
+        #         b = image[y][x][2]
+        #         a = 1
+        #         pixels[(y * image_out_x) + x] = [r, g, b, a]
+
         blender_image = bpy.data.images.new(
-            "MyImage", width=image_out_x, height=image_out_y)
+            "MyImage", width=image_out_y, height=image_out_x)
         pixels = [None] * image_out_x * image_out_y
         for x in range(image_out_x):
             for y in range(image_out_y):
@@ -538,7 +550,7 @@ class WFC_OT_Runner(bpy.types.Operator):
                 g = image[y][x][1]
                 b = image[y][x][2]
                 a = 1
-                pixels[(y * image_out_x) + x] = [r, g, b, a]
+                pixels[(x * image_out_y) + y] = [r, g, b, a]
 
         pixels = [chan for px in pixels for chan in px]
         blender_image.pixels = pixels
