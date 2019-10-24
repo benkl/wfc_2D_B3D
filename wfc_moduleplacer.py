@@ -86,6 +86,8 @@ def blender_transitions(wfc_result_array):
 
 
 def create_placer_modules(b3d_image):
+    img_source_array = b3d_image.pixels[:]
+    print(img_source_array)
     return
 
 
