@@ -86,8 +86,30 @@ def blender_transitions(wfc_result_array):
 
 
 def create_placer_modules(b3d_image):
+    img_source_h = b3d_image.size[0]
+    img_source_w = b3d_image.size[1]
     img_source_array = b3d_image.pixels[:]
     print(img_source_array)
+    for height_i in range(0, img_source_h):
+
+        for width_i in range(0, img_source_w):
+
+            # Get pixel position in flat array
+            colar = (width_i + (height_i * img_source_w)) * 4
+            print(colar)
+            # Set color values at current Pixel
+
+            r = round(img_source_array[colar - 4], 8)
+            g = round(img_source_array[colar - 3], 8)
+            b = round(img_source_array[colar - 2], 8)
+            a = round(img_source_array[colar - 1], 8)
+            img_target = []
+            img_target[width_i][height_i][0] = r
+            img_target[width_i][height_i][1] = g
+            img_target[width_i][height_i][2] = b
+            print(img_target[width_i][height_i])
+            # print(r, g, b, a)
+    # print(img_source_array)
     return
 
 

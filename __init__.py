@@ -13,7 +13,7 @@
 
 bl_info = {
     "name" : "B3D Wave Function Collapse",
-    "author" : "Wave Function Collapse",
+    "author" : "Maxim Gumin, Victor Le, Benjamin Kleinert",
     "description" : "",
     "blender" : (2, 80, 0),
     "version" : (0, 0, 1),

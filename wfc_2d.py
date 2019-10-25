@@ -1,9 +1,11 @@
-"""
-An example of using the wave function collapse with 2D image.
+################################
+# WAVE FUNCTION COLLAPSE IN 2D #
+################################
 
-"""
+# Original WFC implementation by Maxim Gumin @mxgmn on github
+# Python implementation by Victor Le @Coac on github
+# Blender implementation by Benjamin Kleinert @benkl on github
 
-# from multiprocessing import Pool
 import time
 import os
 import numpy as np
@@ -13,9 +15,8 @@ import bpy
 
 
 class WaveFunctionCollapse:
-    """
-    WaveFunctionCollapse encapsulates the wfc algorithm
-    """
+
+    # WaveFunctionCollapse encapsulates the wfc algorithm
 
     def __init__(self, grid_size, sample, pattern_size):
         self.patterns = Pattern.from_sample(sample, pattern_size)
@@ -66,9 +67,8 @@ class WaveFunctionCollapse:
 
 
 class Grid:
-    """
-    Grid is made of Cells
-    """
+
+    # Grid is made of Cells
 
     def __init__(self, size, num_pattern):
         self.size = size
@@ -101,18 +101,18 @@ class Grid:
         return cell
 
     def get_cell(self, index):
-        """
-        Returns the cell contained in the grid at the provided index
-        :param index: (...z, y, x)
-        :return: cell
-        """
+
+        # Returns the cell contained in the grid at the provided index
+        # :param index: (...z, y, x)
+        # :return: cell
+
         return self.grid[index]
 
     def get_image(self):
-        """
-        Returns the grid converted from index to back to color
-        :return:
-        """
+
+        # Returns the grid converted from index to back to color
+        # :return:
+
         image = np.vectorize(lambda c: c.get_value())(self.grid)
         image = Pattern.index_to_img(image)
         return image
@@ -130,9 +130,8 @@ class Grid:
 
 
 class Propagator:
-    """
-    Propagator that computes and stores the legal patterns relative to another
-    """
+
+    #  Propagator that computes and stores the legal patterns relative to another
 
     def __init__(self, patterns):
         self.patterns = patterns
@@ -207,9 +206,9 @@ class Propagator:
 
 
 class Pattern:
-    """
-    Pattern is a configuration of tiles from the input image.
-    """
+
+    # Pattern is a configuration of tiles from the input image.
+
     index_to_pattern = {}
     color_to_index = {}
     index_to_color = {}
@@ -232,12 +231,12 @@ class Pattern:
         return self.data.shape
 
     def is_compatible(self, candidate_pattern, offset):
-        """
-        Check if pattern is compatible with a candidate pattern for a given offset
-        :param candidate_pattern:
-        :param offset:
-        :return: True if compatible
-        """
+
+        # Check if pattern is compatible with a candidate pattern for a given offset
+        # :param candidate_pattern:
+        # :param offset:
+        # :return: True if compatible
+
         assert (self.shape == candidate_pattern.shape)
 
         # Precomputed compatibility
@@ -269,12 +268,11 @@ class Pattern:
 
     @staticmethod
     def from_sample(sample, pattern_size):
-        """
-        Compute patterns from sample
-        :param pattern_size:
-        :param sample:
-        :return: list of patterns
-        """
+
+        # Compute patterns from sample
+        # :param pattern_size:
+        # :param sample:
+        # :return: list of patterns
 
         sample = Pattern.sample_img_to_indexes(sample)
 
@@ -336,11 +334,11 @@ class Pattern:
 
     @staticmethod
     def sample_img_to_indexes(sample):
-        """
-        Convert a rgb image to a 2D array with pixel index
-        :param sample:
-        :return: pixel index sample
-        """
+
+        # Convert a rgb image to a 2D array with pixel index
+        # :param sample:
+        # :return: pixel index sample
+
         Pattern.color_to_index = {}
         Pattern.index_to_color = {}
         sample_index = np.zeros(sample.shape[:-1])  # without last rgb dim
@@ -376,9 +374,8 @@ class Pattern:
 
 
 class Cell:
-    """
-    Cell is a pixel or tile (in 2d) that stores the possible patterns
-    """
+
+    # Cell is a pixel or tile (in 2d) that stores the possible patterns
 
     def __init__(self, num_pattern, position, grid):
         self.num_pattern = num_pattern
@@ -422,20 +419,81 @@ class Cell:
 
 
 def load_sample(path):
-    # > This would read the image
-    # sample = plt.imread(path)
-    # print(sample.shape)
+
     sample = path
-    # print(sample)
-    # Expand dim to 3D
+
+    # Expand dimensions from 2D to 3D (For use in 2D)
     sample = np.expand_dims(sample, axis=0)
     sample = sample[:, :, :, :3]
 
     return sample
 
+
 ###########################
 # WELCOME TO BLENDER CITY #
 ###########################
+
+
+def blender_image_to_nparray(b3d_image):
+    img_source_w = b3d_image.size[0]
+    img_source_h = b3d_image.size[1]
+
+    # Create an NP array filled with 0.5
+    img_target = np.full((img_source_w, img_source_h, 3), .5)
+
+    # Get all image pixels
+    img_source_array = b3d_image.pixels[:]
+
+    for height_i in range(0, img_source_h):
+
+        for width_i in range(0, img_source_w):
+
+            # Get pixel position in flat array
+            colar = (width_i + (height_i * img_source_w)) * 4
+
+            # Get color values at current "Pixel"
+            r = round(img_source_array[colar - 4], 8)
+            g = round(img_source_array[colar - 3], 8)
+            b = round(img_source_array[colar - 2], 8)
+            a = round(img_source_array[colar - 1], 8)
+
+            # Fill NP Array with the collected values
+            img_target[width_i][height_i][0] = r
+            img_target[width_i][height_i][1] = g
+            img_target[width_i][height_i][2] = b
+
+    return(img_target)
+
+
+def nparray_to_blender_image(image, image_out_x, image_out_y):
+
+    # Create an image with the needed output dimensions
+    blender_image = bpy.data.images.new(
+        "MyImage", width=image_out_y, height=image_out_x)
+
+    # Create Temporary pixel array to fill
+    pixels = [None] * image_out_x * image_out_y
+
+    for x in range(image_out_x):
+
+        for y in range(image_out_y):
+
+            # Get values from NP Array
+            r = image[y][x][0]
+            g = image[y][x][1]
+            b = image[y][x][2]
+            a = 1
+
+            # Write values into temporary array
+            pixels[(x * image_out_y) + y] = [r, g, b, a]
+
+    # Flatten Pixel list into blender image object pixel list
+    pixels = [chan for px in pixels for chan in px]
+
+    # Set image data block pixel values to the flat temporary pixel array
+    blender_image.pixels = pixels
+
+    return
 
 
 class WFC_OT_Runner(bpy.types.Operator):
@@ -443,60 +501,50 @@ class WFC_OT_Runner(bpy.types.Operator):
     bl_label = "Collapse"
 
     def execute(self, context):
+        # Getting output dimensions from UI
         image_out_x = bpy.context.scene.wfc_vars.wfc_resultx
         image_out_y = bpy.context.scene.wfc_vars.wfc_resulty
+
+        # Here 3D could be integrated
         image_out_z = 1
+
+        # Set Grid size from the UI vars
         grid_size = (image_out_z, image_out_y, image_out_x)
+
+        # Getting pattern dimensions from UI
         pat_x = bpy.context.scene.wfc_vars.wfc_patternx
         pat_y = bpy.context.scene.wfc_vars.wfc_patterny
+
+        # Pattern preparation for 3D
         pat_z = 1
+
+        # Set Pattern size from the UI vars
         pattern_size = (pat_z, pat_y, pat_x)
+
+        # Get image name from UI and get Image Data Block
         img_name = bpy.context.scene.wfc_vars.wfc_images
         img = bpy.data.images[img_name]
-        img_source_w = img.size[0]
-        img_source_h = img.size[1]
-        img_target = np.full((img_source_w, img_source_h, 3), .5)
-        img_source_array = img.pixels[:]
 
-        for height_i in range(0, img_source_h):
+        # Convert the Image Data Block to an NP Array fit for the collapse algorithm
+        img_target = blender_image_to_nparray(img)
 
-            for width_i in range(0, img_source_w):
-
-                # Get pixel position in flat array
-                colar = (width_i + (height_i * img_source_w)) * 4
-
-                # Set color values at current Pixel
-
-                r = round(img_source_array[colar - 4], 8)
-                g = round(img_source_array[colar - 3], 8)
-                b = round(img_source_array[colar - 2], 8)
-                a = round(img_source_array[colar - 1], 8)
-                img_target[width_i][height_i][0] = r
-                img_target[width_i][height_i][1] = g
-                img_target[width_i][height_i][2] = b
-                # print(r, g, b, a)
-
+        # Expand image dimensions for use in WFC
         sample = load_sample(img_target)
 
+        # Init WFC with the params
         wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
 
+        # Running WFC, wfc.step could be used to generate animations
         wfc.run()
+
+        # After running we request the image result
         image = wfc.get_image()
+
+        # Take of a Dimension of the result
         if image.shape[0] == 1:
             image = np.squeeze(image, axis=0)
 
-        blender_image = bpy.data.images.new(
-            "MyImage", width=image_out_y, height=image_out_x)
-        pixels = [None] * image_out_x * image_out_y
-        for x in range(image_out_x):
-            for y in range(image_out_y):
-                r = image[y][x][0]
-                g = image[y][x][1]
-                b = image[y][x][2]
-                a = 1
-                pixels[(x * image_out_y) + y] = [r, g, b, a]
-
-        pixels = [chan for px in pixels for chan in px]
-        blender_image.pixels = pixels
+        # Write an image to blender from the NP Array
+        nparray_to_blender_image(image, image_out_x, image_out_y)
 
         return {'FINISHED'}
