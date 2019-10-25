@@ -11,6 +11,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+# Original WFC implementation by Maxim Gumin @mxgmn on github
+# Python implementation by Victor Le @Coac on github
+# Blender implementation by Benjamin Kleinert @benkl on github
+
 bl_info = {
     "name" : "B3D Wave Function Collapse",
     "author" : "Maxim Gumin, Victor Le, Benjamin Kleinert",
