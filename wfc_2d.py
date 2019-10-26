@@ -294,24 +294,39 @@ class Pattern:
                                 for i, d in enumerate(index)]
             pattern_data = sample[np.ix_(*pattern_location)]
             flipdata = bpy.context.scene.wfc_vars.wfc_rotflip
-            datas = [pattern_data, np.fliplr(pattern_data)]
+
+            # datas = [pattern_data, np.fliplr(pattern_data)]
+            datas = [pattern_data]
+
             if shape[1] > 1 and flipdata == True:  # is 2D
+
+                # flipped tiles
+                datas.append(np.fliplr(pattern_data))
                 datas.append(np.flipud(pattern_data))
+
+                # rotated tiles
                 datas.append(np.rot90(pattern_data, axes=(1, 2)))
                 datas.append(np.rot90(pattern_data, 2, axes=(1, 2)))
                 datas.append(np.rot90(pattern_data, 3, axes=(1, 2)))
 
             if shape[0] > 1 and flipdata == True:  # is 3D
+
+                # flipped tiles
                 datas.append(np.flipud(pattern_data))
+                datas.append(np.fliplr(pattern_data))
+
+                # rotated tiles
                 datas.append(np.rot90(pattern_data, axes=(0, 2)))
                 datas.append(np.rot90(pattern_data, 2, axes=(0, 2)))
                 datas.append(np.rot90(pattern_data, 3, axes=(0, 2)))
 
             if shape[1] > 1 and flipdata == False:  # is 2D
-                datas.append(pattern_data)
+                # datas.append(pattern_data)
+                pass
 
             if shape[0] > 1 and flipdata == False:  # is 3D
-                datas.append(pattern_data)
+                # datas.append(pattern_data)
+                pass
 
             # Checking existence
             # TODO: more probability to multiple occurrences when observe phase

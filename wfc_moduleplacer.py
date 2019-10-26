@@ -119,7 +119,6 @@ def place_blocks(module_list):
         tiles_collection = bpy.data.collections.new('Tiles')
 
     bpy.context.scene.collection.children.link(tiles_collection)
-    print(unique_tiles)
 
     for t in range(0, len(unique_tiles)):
 
@@ -129,7 +128,7 @@ def place_blocks(module_list):
 
         basemesh.name = unique_tiles[t]
 
-        tiles_collection.objects.link(basemesh)
+        # tiles_collection.objects.link(basemesh)
 
     # result_collection = bpy.data.collections.new(result_name)
 
