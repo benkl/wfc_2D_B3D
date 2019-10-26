@@ -27,15 +27,18 @@ class WaveFunctionCollapse:
         start_time = time.time()
 
         done = False
+    # self.propagator.propagate(cell)
+        print("we got a cell", self.grid.get_cell(0))
+
         while not done:
             done = self.step()
-
         print("WFC run took %s seconds" % (time.time() - start_time))
 
     def step(self):
         step_time = time.time()
         self.grid.print_allowed_pattern_count()
         cell = self.observe()
+        print(cell)
         if cell is None:
             return True
         self.propagate(cell)
@@ -390,9 +393,17 @@ class Cell:
 
     def __init__(self, num_pattern, position, grid):
         self.num_pattern = num_pattern
-        self.allowed_patterns = [i for i in range(self.num_pattern)]
-        print(position, self.allowed_patterns)
         self.position = position
+        self.allowed_patterns = [i for i in range(self.num_pattern)]
+
+        # Test to init with first observed tdile one borders
+        if self.position[2] == 0:
+            self.allowed_patterns = [0]
+        if self.position[1] == 0:
+            self.allowed_patterns = [0]
+
+        # print(position, self.allowed_patterns)
+
         self.grid = grid
         self.offsets = [(z, y, x) for x in range(-1, 2)
                         for y in range(-1, 2) for z in range(-1, 2)]
