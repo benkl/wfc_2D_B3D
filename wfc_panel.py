@@ -25,7 +25,9 @@ class WFC_PT_Panel(bpy.types.Panel):
         patternrow = patternbox.row()
         patternrow.prop(context.scene.wfc_vars, "wfc_patternx")
         patternrow.prop(context.scene.wfc_vars, "wfc_patterny")
-        patternbox.prop(context.scene.wfc_vars, "wfc_rotflip")
+        patternbox.prop(context.scene.wfc_vars, "wfc_rot")
+        patternbox.prop(context.scene.wfc_vars, "wfc_flipv")
+        patternbox.prop(context.scene.wfc_vars, "wfc_fliph")
         patternbox.prop(context.scene.wfc_vars, "wfc_resultx")
         patternbox.prop(context.scene.wfc_vars, "wfc_resulty")
         patternbox.operator("object.wfc_ot_runner", icon="PLAY")
@@ -71,8 +73,18 @@ class WFC_UI_Variables(PropertyGroup):
         default=30,
         description="Output image Y-Dimension, <30 recommended"
     )
-    wfc_rotflip: BoolProperty(
-        name="Flip and rotate Patterns",
+    wfc_fliph: BoolProperty(
+        name="Flip patterns H",
         default=False,
-        description="Small input images recommended, can severly prolong collapse. Adds rotated and flipped variants of all found patterns."
+        description="Small input images recommended, can severly prolong collapse. Adds horizontally flipped variants of all found patterns."
+    )
+    wfc_flipv: BoolProperty(
+        name="Flip patterns V",
+        default=False,
+        description="Small input images recommended, can severly prolong collapse. Adds vertically flipped variants of all found patterns."
+    )
+    wfc_rot: BoolProperty(
+        name="Rotate patterns",
+        default=False,
+        description="Small input images recommended, can severly prolong collapse. Adds rotated variants of all found patterns."
     )
