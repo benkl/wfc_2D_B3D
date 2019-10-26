@@ -33,11 +33,13 @@ class WaveFunctionCollapse:
         print("WFC run took %s seconds" % (time.time() - start_time))
 
     def step(self):
+        step_time = time.time()
         self.grid.print_allowed_pattern_count()
         cell = self.observe()
         if cell is None:
             return True
         self.propagate(cell)
+        print("Step took %s seconds" % (time.time() - step_time))
         return False
 
     def get_image(self):
@@ -73,6 +75,8 @@ class Grid:
     def __init__(self, size, num_pattern):
         self.size = size
         self.grid = np.empty(self.size, dtype=object)
+
+        # Filling grid with cells
         for position in np.ndindex(self.size):
             self.grid[position] = Cell(num_pattern, position, self)
 
@@ -387,7 +391,7 @@ class Cell:
     def __init__(self, num_pattern, position, grid):
         self.num_pattern = num_pattern
         self.allowed_patterns = [i for i in range(self.num_pattern)]
-
+        print(position, self.allowed_patterns)
         self.position = position
         self.grid = grid
         self.offsets = [(z, y, x) for x in range(-1, 2)
