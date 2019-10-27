@@ -27,8 +27,22 @@ class WaveFunctionCollapse:
         start_time = time.time()
 
         done = False
-    # self.propagator.propagate(cell)
-        print("we got a cell", self.grid.get_cell(0))
+        border = bpy.context.scene.wfc_vars.wfc_border
+        # self.propagator.propagate(cell)
+        if border == True:
+            # BorderInsert
+            # print(self.grid.size[2])
+            # print("we got a cell", self.grid.get_cell(0))
+            cell = self.grid.get_cell(0)[self.grid.size[1]-1][0]
+            # self.propagate(cell)
+            cell = self.grid.get_cell(0)[0][self.grid.size[2]-1]
+            # self.propagate(cell)
+            cell = self.grid.get_cell(
+                0)[self.grid.size[1]-1][self.grid.size[2]-1]
+            # self.propagate(cell)
+            cell = self.grid.get_cell(0)[0][0]
+            self.propagate(cell)
+            # Border Insert end
 
         while not done:
             done = self.step()
@@ -38,7 +52,6 @@ class WaveFunctionCollapse:
         step_time = time.time()
         self.grid.print_allowed_pattern_count()
         cell = self.observe()
-        print(cell)
         if cell is None:
             return True
         self.propagate(cell)
@@ -396,15 +409,22 @@ class Cell:
         self.position = position
         self.allowed_patterns = [i for i in range(self.num_pattern)]
 
-        # Test to init with first observed tdile one borders
-        if self.position[2] == 0:
-            self.allowed_patterns = [0]
-        if self.position[1] == 0:
-            self.allowed_patterns = [0]
-
-        # print(position, self.allowed_patterns)
-
         self.grid = grid
+        border = bpy.context.scene.wfc_vars.wfc_border
+        # self.propagator.propagate(cell)
+        if border == True:
+            # Test to init with first observed tdile one borders
+            rule_index = bpy.context.scene.wfc_vars.wfc_borderrule
+            if self.position[2] == 0:
+                self.allowed_patterns = [rule_index]
+            if self.position[1] == 0:
+                self.allowed_patterns = [rule_index]
+            if self.position[2] == self.grid.size[2]-1:
+                self.allowed_patterns = [rule_index]
+            if self.position[1] == self.grid.size[1]-1:
+                self.allowed_patterns = [rule_index]
+                # print(position, self.allowed_patterns)
+
         self.offsets = [(z, y, x) for x in range(-1, 2)
                         for y in range(-1, 2) for z in range(-1, 2)]
 

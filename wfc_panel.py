@@ -28,6 +28,8 @@ class WFC_PT_Panel(bpy.types.Panel):
         patternbox.prop(context.scene.wfc_vars, "wfc_rot")
         patternbox.prop(context.scene.wfc_vars, "wfc_flipv")
         patternbox.prop(context.scene.wfc_vars, "wfc_fliph")
+        patternbox.prop(context.scene.wfc_vars, "wfc_border")
+        patternbox.prop(context.scene.wfc_vars, "wfc_borderrule")
         patternbox.prop(context.scene.wfc_vars, "wfc_resultx")
         patternbox.prop(context.scene.wfc_vars, "wfc_resulty")
         patternbox.operator("object.wfc_ot_runner", icon="PLAY")
@@ -73,6 +75,11 @@ class WFC_UI_Variables(PropertyGroup):
         default=30,
         description="Output image Y-Dimension, <30 recommended"
     )
+    wfc_borderrule: IntProperty(
+        name="Border rule index",
+        default=0,
+        description="This is experiemental and can run out of bounds."
+    )
     wfc_fliph: BoolProperty(
         name="Flip patterns H",
         default=False,
@@ -87,4 +94,9 @@ class WFC_UI_Variables(PropertyGroup):
         name="Rotate patterns",
         default=False,
         description="Small input images recommended, can severly prolong collapse. Adds rotated variants of all found patterns."
+    )
+    wfc_border: BoolProperty(
+        name="Constrain grid borders",
+        default=False,
+        description="Create a border with the n-th rule found. Select below."
     )
