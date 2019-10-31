@@ -3,71 +3,25 @@ import random
 import sys
 import bpy
 
-# PART BELOW NOT WORKING TAKES CHANNEL VALUES INSTEAD OF PIXEL VALUES
-
-"""
-def block_placer(output_array):
-    # Find Collection
-    seed = random.randrange(sys.maxsize)
-    result_name = 'Result ' + str(seed)
-
-    if (bpy.data.collections.find('Tiles') == True):
-        tiles_collection = bpy.data.collections['Tiles']
-    else:
-        tiles_collection = bpy.data.collections.new('Tiles')
-
-    bpy.context.scene.collection.children.link(tiles_collection)
-    l_len = len(output_array[0])
-    variants = get_tiles(output_array)
-    result_collection = bpy.data.collections.new(result_name)
-    bpy.context.scene.collection.children.link(result_collection)
-    for t in range(0, len(variants)):
-        bpy.ops.mesh.primitive_plane_add(location=(t, -5, 0), size=1)
-        basemesh = bpy.context.object
-        basemesh.name = str(variants[t])
-        # bpy.data.collections['Tiles'].objects.link(basemesh)
-        tiles_collection.objects.link(basemesh)
-        # bpy.context.scene.collection.children.unlink(basemesh)
-        # print(t)
-
-    for x in range(0, len(output_array)):
-            # in the cell
-        for y in range(0, l_len):
-            # print(output_array[0][x][y])
-            srcobj = tiles_collection.objects[output_array[x][y]]
-            if srcobj.type == 'MESH':
-                print('mesh')
-                copymesh = srcobj.copy()
-                copymesh.name = output_array[x][y] + str((x + 1) * (y + 1))
-                copymesh.data = srcobj.data
-                # copymesh = bpy.context.object
-                copymesh.location = (x, y, 0)
-                result_collection.objects.link(copymesh)
-            else:
-                pass
-
-        # set mesh name
-    return
-"""
-
 
 def blender_image_to_modulelist(b3d_image):
     img_source_w = b3d_image.size[0]
     img_source_h = b3d_image.size[1]
 
     # Pixel target image array
-    pixel_target = np.full((img_source_w, img_source_h), "_9__9__9_")
+    pixel_target = np.full((img_source_h, img_source_w), "_9__9__9_")
+
     # Get all image pixels
     img_source_array = b3d_image.pixels[:]
 
+    print(img_source_array)
+
     for height_i in range(0, img_source_h):
 
-        # Make a new line in the row list
-
         for width_i in range(0, img_source_w):
-
+            print(width_i)
             # Get pixel position in flat array
-            colar = (width_i + (height_i * img_source_w)) * 4
+            colar = (1 + (width_i + (height_i * img_source_w))) * 4
 
             # Get color values at current "Pixel"
             r = str(round(img_source_array[colar - 4], 1))
@@ -77,20 +31,21 @@ def blender_image_to_modulelist(b3d_image):
 
             # Append a list of the rgb values for each pixel to the line list
             pixel_target[height_i][width_i] = rgb
+    print(pixel_target)
 
     # Empty target module array
-    module_target = np.full((img_source_w-2, img_source_h-2),
+    module_target = np.full((img_source_h-2, img_source_w-2),
                             "45_45_45_45_45_45_45_45_45_45_45_45_45_45_45_")
-    for height_i in range(0, img_source_h-2):
+    for height_i in range(1, img_source_h-1):
 
-        # Append new line to module row
-        for width_i in range(0, img_source_w-2):
+        for width_i in range(1, img_source_w-1):
 
             # Return a list of neighbours
             current_module = pixelstr_neighbours_list(
                 height_i, width_i, pixel_target)
-            module_target[height_i][width_i] = current_module
-
+            print(current_module)
+            module_target[height_i-1][width_i-1] = current_module
+    print(module_target)
     return module_target
 
 
@@ -113,45 +68,50 @@ def place_blocks(module_list):
     result_name = 'Result ' + str(seed)
     unique_tiles = np.unique(module_list)
 
+    # Find Tile Collection or create one
     if (bpy.data.collections.find('Tiles') == True):
         tiles_collection = bpy.data.collections['Tiles']
     else:
         tiles_collection = bpy.data.collections.new('Tiles')
+        bpy.context.scene.collection.children.link(tiles_collection)
 
-    bpy.context.scene.collection.children.link(tiles_collection)
-
+    # Create all unique tiles
     for t in range(0, len(unique_tiles)):
 
         bpy.ops.mesh.primitive_plane_add(location=(t, -5, 0), size=1)
 
         basemesh = bpy.context.object
 
+        tiles_collection.objects.link(basemesh)
+
+        bpy.data.collections['Collection'].objects.unlink(basemesh)
+
         basemesh.name = unique_tiles[t]
 
-        # tiles_collection.objects.link(basemesh)
+    # Create result collection
+    result_collection = bpy.data.collections.new(result_name)
 
-    # result_collection = bpy.data.collections.new(result_name)
+    bpy.context.scene.collection.children.link(result_collection)
+    # Copy tile and change the respective position
+    print(len(module_list))
+    for x in range(0, len(module_list)):
 
-    # bpy.context.scene.collection.children.link(result_collection)
+        for y in range(0, len(module_list[x])):
 
-    # for x in range(0, len(module_list)):
+            srcobj = tiles_collection.objects[module_list[x][y]]
 
-    #     for y in range(0, len(module_list[x])):
+            if srcobj.type == 'MESH':
 
-    #         srcobj = tiles_collection.objects[module_list[x][y]]
+                print('mesh')
+                copymesh = srcobj.copy()
+                copymesh.name = module_list[x][y] + str((x + 1) * (y + 1))
+                copymesh.data = srcobj.data
 
-    #         if srcobj.type == 'MESH':
-
-    #             print('mesh')
-    #             copymesh = srcobj.copy()
-    #             copymesh.name = module_list[x][y] + str((x + 1) * (y + 1))
-    #             copymesh.data = srcobj.data
-
-    #             # copymesh = bpy.context.object
-    #             copymesh.location = (x, y, 0)
-    #             result_collection.objects.link(copymesh)
-    #         else:
-    #             pass
+                # copymesh = bpy.context.object
+                copymesh.location = (-x, y, 0)
+                result_collection.objects.link(copymesh)
+            else:
+                pass
 
     # set mesh name
 

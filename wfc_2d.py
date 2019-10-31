@@ -491,7 +491,7 @@ def blender_image_to_nparray(b3d_image):
         for width_i in range(0, img_source_w):
 
             # Get pixel position in flat array
-            colar = (width_i + (height_i * img_source_w)) * 4
+            colar = (1+(width_i + (height_i * img_source_w))) * 4
 
             # Get color values at current "Pixel"
             r = round(img_source_array[colar - 4], 8)
