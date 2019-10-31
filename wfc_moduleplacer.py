@@ -14,8 +14,6 @@ def blender_image_to_modulelist(b3d_image):
     # Get all image pixels
     img_source_array = b3d_image.pixels[:]
 
-    print(img_source_array)
-
     for height_i in range(0, img_source_h):
 
         for width_i in range(0, img_source_w):
@@ -31,7 +29,6 @@ def blender_image_to_modulelist(b3d_image):
 
             # Append a list of the rgb values for each pixel to the line list
             pixel_target[height_i][width_i] = rgb
-    print(pixel_target)
 
     # Empty target module array
     module_target = np.full((img_source_h-2, img_source_w-2),
@@ -43,9 +40,8 @@ def blender_image_to_modulelist(b3d_image):
             # Return a list of neighbours
             current_module = pixelstr_neighbours_list(
                 height_i, width_i, pixel_target)
-            print(current_module)
             module_target[height_i-1][width_i-1] = current_module
-    print(module_target)
+
     return module_target
 
 
@@ -92,8 +88,8 @@ def place_blocks(module_list):
     result_collection = bpy.data.collections.new(result_name)
 
     bpy.context.scene.collection.children.link(result_collection)
+
     # Copy tile and change the respective position
-    print(len(module_list))
     for x in range(0, len(module_list)):
 
         for y in range(0, len(module_list[x])):
