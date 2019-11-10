@@ -65,7 +65,7 @@ def place_blocks(module_list):
     unique_tiles = np.unique(module_list)
 
     # Find Tile Collection or create one
-    if (bpy.data.collections.find('Tiles') == True):
+    if (bpy.data.collections.find('Tiles') >= 0):
         tiles_collection = bpy.data.collections['Tiles']
     else:
         tiles_collection = bpy.data.collections.new('Tiles')
@@ -73,16 +73,18 @@ def place_blocks(module_list):
 
     # Create all unique tiles
     for t in range(0, len(unique_tiles)):
+        if bpy.data.collections['Tiles'].objects.find(unique_tiles[t]) >= 0:
+            pass
+        else:
+            bpy.ops.mesh.primitive_plane_add(location=(t, -5, 0), size=1)
 
-        bpy.ops.mesh.primitive_plane_add(location=(t, -5, 0), size=1)
+            basemesh = bpy.context.object
 
-        basemesh = bpy.context.object
+            tiles_collection.objects.link(basemesh)
 
-        tiles_collection.objects.link(basemesh)
+            bpy.data.collections['Collection'].objects.unlink(basemesh)
 
-        bpy.data.collections['Collection'].objects.unlink(basemesh)
-
-        basemesh.name = unique_tiles[t]
+            basemesh.name = unique_tiles[t]
 
     # Create result collection
     result_collection = bpy.data.collections.new(result_name)
