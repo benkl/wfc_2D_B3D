@@ -557,6 +557,9 @@ class WFC_OT_Runner(bpy.types.Operator):
         pat_x = bpy.context.scene.wfc_vars.wfc_patternx
         pat_y = bpy.context.scene.wfc_vars.wfc_patterny
 
+        # get the loop count
+        loopcount = bpy.context.scene.wfc_vars.wfc_loopcount
+
         # Pattern preparation for 3D
         pat_z = 1
 
@@ -574,19 +577,20 @@ class WFC_OT_Runner(bpy.types.Operator):
         sample = load_sample(img_target)
 
         # Init WFC with the params
-        wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
+        for i in range(0, loopcount):
+            wfc = WaveFunctionCollapse(grid_size, sample, pattern_size)
 
-        # Running WFC, wfc.step could be used to generate animations
-        wfc.run()
+            # Running WFC, wfc.step could be used to generate animations
+            wfc.run()
 
-        # After running we request the image result
-        image = wfc.get_image()
+            # After running we request the image result
+            image = wfc.get_image()
 
-        # Take of a Dimension of the result
-        if image.shape[0] == 1:
-            image = np.squeeze(image, axis=0)
+            # Take of a Dimension of the result
+            if image.shape[0] == 1:
+                image = np.squeeze(image, axis=0)
 
-        # Write an image to blender from the NP Array
-        nparray_to_blender_image(image, image_out_x, image_out_y)
+            # Write an image to blender from the NP Array
+            nparray_to_blender_image(image, image_out_x, image_out_y)
 
         return {'FINISHED'}

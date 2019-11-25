@@ -32,6 +32,7 @@ class WFC_PT_Panel(bpy.types.Panel):
         patternbox.prop(context.scene.wfc_vars, "wfc_borderrule")
         patternbox.prop(context.scene.wfc_vars, "wfc_resultx")
         patternbox.prop(context.scene.wfc_vars, "wfc_resulty")
+        patternbox.prop(context.scene.wfc_vars, "wfc_loopcount")
         patternbox.operator("object.wfc_ot_runner", icon="PLAY")
         placerbox = layout.box()
         placerbox.label(text="2D Module Instancer")
@@ -54,6 +55,11 @@ class WFC_UI_Variables(PropertyGroup):
         name="Placer Source",
         description="Selected pattern image to place",
         items=wfc_img_list
+    )
+    wfc_loopcount: IntProperty(
+        name="Loop count",
+        default=1,
+        description="Generate multiple outputs, can take forever."
     )
     wfc_patternx: IntProperty(
         name="Pattern X",
