@@ -80,6 +80,7 @@ def place_blocks(module_list):
 
             basemesh = bpy.context.object
 
+            # if bpy.data.collections['Tiles'].objects.find(basemesh.name) >= 0:
             tiles_collection.objects.link(basemesh)
 
             bpy.data.collections['Collection'].objects.unlink(basemesh)
