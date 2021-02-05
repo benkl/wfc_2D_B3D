@@ -1,4 +1,4 @@
-This is an experimental add-on for Blender implementing 2D Wave Function Collapse. For now enjoy exploring. (wfc explanation and original concept: https://github.com/mxgmn/WaveFunctionCollapse 52)
+This is an experimental add-on for Blender implementing 2D Wave Function Collapse. For now enjoy exploring. (wfc explanation and original concept: https://github.com/mxgmn/WaveFunctionCollapse)
 
 The wfc panel is located in the n-panel under ‘misc’.
 
