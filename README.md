@@ -17,3 +17,7 @@ The module instancer is a seperate operator that can take any input image and cr
 Toggle the system console to see progress.
 
 Please feel free to improve the code and commit!
+
+![Interface](https://blenderartists.org/uploads/default/original/4X/8/6/d/86dff233e6cc57d7a82effabe202ab51f4d9c896.png)
+
+![Example Setup](https://blenderartists.org/uploads/default/original/4X/a/2/e/a2ebf70813519d612b611be6e4da00e2b150f433.png)
