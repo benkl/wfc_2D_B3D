@@ -4,8 +4,8 @@ The wfc panel is located in the n-panel under ‘misc’.
 
 Add a Pattern source. [png, small size recommended]
 In the Pattern Source dropdown select the image you added.
-Pattern X and Pattern Y are used to set the pattern rule width and height. [2*2, 3*3 recommended]
-The rotation and flipping checkboxes can be set to transform the created rules [eg 2*2 rules from a png], rotating them or flipping them.
+Pattern X and Pattern Y are used to set the pattern rule width and height. [2 * 2, 3 * 3 recommended]
+The rotation and flipping checkboxes can be set to transform the created rules [eg 2 * 2 rules from a png], rotating them or flipping them.
 Constrain grid borders is used to force the first pattern being detected to be used around the grid borders. Leaving a uniform spot in the top right of your png source can serve to create a blank rule, generating grid contained patterns.
 Border rule index box can be used to set the rule selected to create the grid borders mentioned above. [This is an experimental feature]
 Output X and Y are used to set the size of the image you want to generate.
