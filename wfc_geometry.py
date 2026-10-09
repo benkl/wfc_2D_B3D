@@ -14,7 +14,7 @@ on every run so the position always equals the tile id.
 """
 
 import bpy
-from .wfc_appearance import sync as sync_appearance
+from .wfc_appearance import control_ids, initialize_modifier, sync as sync_appearance
 
 from .wfc_solver import color_key
 
@@ -23,6 +23,8 @@ GROUP_NAME = "WFC Tile Instancer"
 GROUP_PROP = "wfc_node_group"
 COLLECTION_NODE = "WFC Tile Collection"
 ATTRIBUTE_NAME = "wfc_tile_id"
+SOURCE_ATTRIBUTE = "wfc_source_id"
+VARIANT_ATTRIBUTE = "wfc_variant_id"
 TILE_PROP = "wfc_tile_id"
 GRID_PROP = "wfc_grid"
 STOCK_PROP = "wfc_stock"
@@ -232,7 +234,7 @@ def _sync_tiles(assets, colors, keys):
     for obj in tiles + unmatched + foreign:
         assets.objects.link(obj)
 
-def _write_points(mesh, indices, width, height):
+def _write_points(mesh, indices, width, height, sources, variants):
     mesh.clear_geometry()
     mesh.from_pydata([(x, y, 0.0) for y in range(height) for x in range(width)], [], [])
     mesh.update()
@@ -241,6 +243,13 @@ def _write_points(mesh, indices, width, height):
         if attribute is not None:
             mesh.attributes.remove(attribute)
         attribute = mesh.attributes.new(ATTRIBUTE_NAME, "INT", "POINT")
+    for name, values in ((SOURCE_ATTRIBUTE, sources), (VARIANT_ATTRIBUTE, variants)):
+        attr = mesh.attributes.get(name)
+        if attr is None or attr.domain != "POINT" or attr.data_type != "INT":
+            if attr is not None:
+                mesh.attributes.remove(attr)
+            attr = mesh.attributes.new(name, "INT", "POINT")
+        attr.data.foreach_set("value", [values[i] for i in indices])
     attribute.data.foreach_set("value", indices)
     mesh.update()
 
@@ -302,21 +311,36 @@ def build(context, indices, colors, keys, width, height, existing=None, settings
     _sync_tiles(assets, colors, keys)
 
     if grid.data.users > 1 or grid.data.library is not None:
-        # Never overwrite a mesh shared with another object.
         grid.data = grid.data.copy()
-    _write_points(grid.data, indices, width, height)
+    source_lookup = {}
+    sources, variants = [], []
+    variant_counts = {}
+    for color in colors:
+        key = color_key(color)
+        source = source_lookup.setdefault(key, len(source_lookup))
+        sources.append(source)
+        variants.append(variant_counts.get(source, 0))
+        variant_counts[source] = variants[-1] + 1
+    for tile, source, variant in zip(_old_tiles(assets), sources, variants):
+        tile[SOURCE_ATTRIBUTE] = source
+        tile[VARIANT_ATTRIBUTE] = variant
+    _write_points(grid.data, indices, width, height, sources, variants)
     grid[GRID_PROP] = True
 
     modifier = _grid_modifier(grid)
     if modifier is None:
+        group = _node_group(assets)
+        if settings is not None:
+            sync_appearance(context, parent, group, len(colors), settings)
         modifier = grid.modifiers.new(MODIFIER_NAME, "NODES")
-        modifier.node_group = _node_group(assets)
+        modifier.node_group = group
     else:
-        # Regeneration keeps the node group; only re-point its collection.
         _collection_node(modifier.node_group).inputs["Collection"].default_value = assets
+        if settings is not None:
+            before = control_ids(modifier.node_group)
+            sync_appearance(context, parent, modifier.node_group, len(colors), settings)
+            initialize_modifier(modifier, control_ids(modifier.node_group) - before)
     grid.update_tag()
-    if settings is not None:
-        sync_appearance(context, parent, modifier.node_group, len(colors), settings)
 
     for obj in context.view_layer.objects:
         if obj.select_get():

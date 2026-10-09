@@ -1,47 +1,67 @@
-"""Visualise which tiles touch which on each side, driven by Geometry Nodes.
+"""Visualise which tile neighbourhoods occur in a solved grid, driven by Geometry Nodes.
 
-For a generated grid this builds a second object, ``WFC Relations``. Every tile
-that occurs in the grid gets one block: the tile sits in the middle and each tile
-seen next to it on the right, up, left or down side is instanced on that side and
-joined to the centre by a line. Instances come from the grid's own tile collection,
-so edits to tile meshes show up here as well. Right is +X and up is +Y, as in the
-grid itself.
+For a generated grid this builds a second object, ``WFC Relations``. Every distinct
+four-side neighbourhood found in the grid gets its own block of up to five points:
+the centre tile in the middle and the tile found on its right, up, left and down
+side around it, each joined to the centre by a line. A side that lies outside the
+grid has no point. Two neighbourhoods are the same when the centre tile and all four
+neighbour tiles agree, so a repeated neighbourhood appears once and two
+neighbourhoods around the same centre tile are separate blocks. Nothing is fanned
+out: a block never lists alternative neighbours for one side.
 
-The mesh stores one vertex per tile (``wfc_rel_side`` = -1) and one per relation,
-all at the block centre. Four integer point attributes drive the node group:
+Blocks are grouped by source tile (the centre colour): one row per source, one
+column per neighbourhood, ordered by variant. Instances come from the grid's own
+tile collection, so edits to tile meshes show up here as well. Right is +X and up is
++Y, as in the grid itself.
 
-* ``wfc_tile_id``   tile instanced at the point (centre tile or neighbour)
-* ``wfc_rel_side``  -1 for the centre, else 0 right, 1 up, 2 left, 3 down
-* ``wfc_rel_slot``  position of the neighbour among those on the same side
-* ``wfc_rel_count`` number of neighbours on that side
+The mesh holds the default layout, with the centre of every block at
+``(column * BLOCK_PITCH, -row * BLOCK_PITCH)`` and neighbours ``DISTANCE`` away. Point
+attributes drive the node group:
 
-The node group turns side, slot and count into an offset, shrinks neighbours, and
-turns the edges back to the centre into tubes. Relations are the ones observed in
-the solved grid, not every pairing the source image could allow.
+* ``wfc_tile_id``    tile instanced at the point (centre tile or neighbour)
+* ``wfc_source_id``  source of that tile: palette index of the centre colour
+* ``wfc_variant_id`` ordinal of that tile among the tiles of its source, from 0
+* ``wfc_rel_side``   -1 for the centre, else 0 right, 1 up, 2 left, 3 down
+* ``wfc_rel_row``    row of the block (source group)
+* ``wfc_rel_col``    column of the block within its row
+
+The node group moves points from the default layout to the Distance and Block
+Spacing inputs, shrinks neighbours, and turns the edges into tubes. Source and
+variant ids are read from the grid's own ``wfc_source_id`` / ``wfc_variant_id`` point
+attributes, else from the same custom properties of the tile objects, else derived
+from the tile keys in tile id order. Neighbourhoods are the ones observed in the
+solved grid, not every pairing the source image could allow.
 """
 
 import math
 
 import bpy
+from .wfc_appearance import (COLLECTION_NODE as APPEARANCE_NODE, attach as attach_appearance,
+                             control_ids, initialize_modifier)
 
-from .wfc_geometry import ATTRIBUTE_NAME, COLLECTION_NODE, find_assets, is_grid
-from .wfc_solver import tile_relations
+from .wfc_geometry import ATTRIBUTE_NAME, COLLECTION_NODE, KEY_PROP, TILE_PROP, find_assets, is_grid
 
 GROUP_NAME = "WFC Relations"
 GROUP_PROP = "wfc_relations_group"
+GROUP_VERSION = 2
+VERSION_PROP = "wfc_relations_version"
 OBJECT_PROP = "wfc_relations"      # grid -> relations object
 SOURCE_PROP = "wfc_relations_of"   # relations object -> grid
 MODIFIER_NAME = "WFC Relations"
+SOURCE_ATTRIBUTE = "wfc_source_id"
+VARIANT_ATTRIBUTE = "wfc_variant_id"
 SIDE_ATTRIBUTE = "wfc_rel_side"
-SLOT_ATTRIBUTE = "wfc_rel_slot"
-COUNT_ATTRIBUTE = "wfc_rel_count"
+ROW_ATTRIBUTE = "wfc_rel_row"
+COLUMN_ATTRIBUTE = "wfc_rel_col"
 
-DISTANCE = 1.6   # centre tile to the neighbour row
-SPACING = 0.75   # gap between neighbours on the same side
+DISTANCE = 1.6   # centre tile to each neighbour
 TILE_SCALE = 0.8
 NEIGHBOUR_SCALE = 0.6
 LINE_RADIUS = 0.02
 _BLOCK_MARGIN = 0.8
+BLOCK_PITCH = 2.0 * (DISTANCE + _BLOCK_MARGIN) + 0.4   # distance between blocks
+# (dx, dy) of each side: 0 right, 1 up, 2 left, 3 down.
+_SIDE_OFFSETS = ((1, 0), (0, 1), (-1, 0), (0, -1))
 
 
 def find_relations(grid):
@@ -52,66 +72,164 @@ def find_relations(grid):
     return None
 
 
+def relations_modifier(obj):
+    """The relations Geometry Nodes modifier of ``obj``, or None."""
+    for modifier in obj.modifiers:
+        group = getattr(modifier, "node_group", None)
+        if modifier.type == "NODES" and group is not None and group.get(GROUP_PROP):
+            return modifier
+    return None
+
+
+def _int_attribute(mesh, name):
+    """Values of an integer point attribute, or None when it is absent."""
+    attribute = mesh.attributes.get(name)
+    if attribute is None or attribute.domain != "POINT" or attribute.data_type != "INT":
+        return None
+    values = [0] * len(mesh.vertices)
+    attribute.data.foreach_get("value", values)
+    return values
+
+
 def grid_tiles(grid):
-    """Tile ids and the size of a generated grid object."""
+    """Tile ids, size, and optional source/variant ids of a generated grid object.
+
+    Returns ``(ids, width, height, sources, variants)``; the last two are lists
+    parallel to ``ids``, or None when the grid does not carry them.
+    """
     mesh = grid.data
-    attribute = mesh.attributes.get(ATTRIBUTE_NAME)
     count = len(mesh.vertices)
-    if attribute is None or attribute.domain != "POINT" or attribute.data_type != "INT" or count == 0:
+    ids = _int_attribute(mesh, ATTRIBUTE_NAME)
+    if ids is None or count == 0:
         raise ValueError("Grid has no wfc_tile_id point attribute")
-    ids = [0] * count
-    attribute.data.foreach_get("value", ids)
     coordinates = [0.0] * (count * 3)
     mesh.vertices.foreach_get("co", coordinates)
     width = int(round(max(coordinates[0::3]))) + 1
     if count % width:
         raise ValueError("Grid points do not form a rectangle")
-    return ids, width, count // width
+    return (ids, width, count // width,
+            _int_attribute(mesh, SOURCE_ATTRIBUTE), _int_attribute(mesh, VARIANT_ATTRIBUTE))
 
 
-def layout(tile_indices, width, height):
+def tile_identities(ids, assets, sources=None, variants=None):
+    """Map each tile id in ``ids`` to ``(source, variant)``.
+
+    Uses the grid point attributes ``sources`` / ``variants`` when given, else the
+    ``wfc_source_id`` / ``wfc_variant_id`` properties of the tile objects, else
+    groups the tiles by the centre colour of their key in tile id order: the source
+    is the group's rank and the variant the ordinal inside the group.
+    """
+    if sources is not None and variants is not None:
+        return {tile: (sources[i], variants[i]) for i, tile in reversed(list(enumerate(ids)))}
+
+    objects = {}
+    for obj in assets.objects:
+        tile = obj.get(TILE_PROP)
+        if isinstance(tile, int):
+            objects[tile] = obj
+    wanted = sorted(set(ids))
+    missing = [t for t in wanted if t not in objects]
+    if missing:
+        raise ValueError("Tile collection has no object for tile id %d" % missing[0])
+
+    result = {}
+    for tile in wanted:
+        source = objects[tile].get(SOURCE_ATTRIBUTE)
+        variant = objects[tile].get(VARIANT_ATTRIBUTE)
+        if not isinstance(source, int) or not isinstance(variant, int):
+            result = None
+            break
+        result[tile] = (source, variant)
+    if result is not None:
+        return result
+
+    # Derive from keys: the centre colour is the part before the first "|".
+    result = {}
+    rank = {}
+    seen = {}
+    for tile in sorted(objects):
+        key = objects[tile].get(KEY_PROP)
+        if not isinstance(key, str):
+            raise ValueError("Tile %d has no wfc_tile_key" % tile)
+        centre = key.split("|", 1)[0]
+        source = rank.setdefault(centre, len(rank))
+        variant = seen.get(source, 0)
+        seen[source] = variant + 1
+        result[tile] = (source, variant)
+    return {tile: result[tile] for tile in wanted}
+
+
+def configurations(tile_indices, width, height):
+    """Distinct four-side neighbourhoods of a grid of tile ids.
+
+    Returns a sorted list of ``(centre, right, up, left, down)``; a neighbour is -1
+    when that side lies outside the grid. A neighbourhood seen several times is
+    listed once.
+    """
+    if len(tile_indices) != width * height:
+        raise ValueError("expected %d tile indices, got %d" % (width * height, len(tile_indices)))
+    found = set()
+    for y in range(height):
+        for x in range(width):
+            around = [tile_indices[y * width + x]]
+            for dx, dy in _SIDE_OFFSETS:
+                nx, ny = x + dx, y + dy
+                inside = 0 <= nx < width and 0 <= ny < height
+                around.append(tile_indices[ny * width + nx] if inside else -1)
+            found.add(tuple(around))
+    return sorted(found)
+
+
+def layout(tile_indices, width, height, identity):
     """Mesh data for the relations view of a solved grid.
 
-    Returns ``(positions, edges, tile, side, slot, count)`` with one entry per
-    vertex. Centre vertices come first, ordered by tile id.
+    ``identity`` maps every tile id of the grid to ``(source, variant)``. Returns
+    ``(positions, edges, attributes)`` where ``attributes`` maps each point
+    attribute name to one integer per vertex. Blocks are ordered by source, then by
+    centre tile (variant), then by neighbours; the centre vertex of a block is
+    followed by its present neighbours in the order right, up, left, down.
     """
-    relations = tile_relations(tile_indices, width, height)
-    tiles = sorted(set(tile_indices))
-    centre_of = {t: i for i, t in enumerate(tiles)}
-    per_side = {}
-    for tile, side, other in relations:
-        per_side.setdefault((tile, side), []).append(other)
-    widest = max((len(v) for v in per_side.values()), default=1)
+    blocks = sorted(configurations(tile_indices, width, height),
+                    key=lambda c: (identity[c[0]], c[0], c[1:]))
+    rows = {}
+    for block in blocks:
+        rows.setdefault(identity[block[0]][0], []).append(block)
 
-    reach = max(DISTANCE, (widest - 1) * SPACING / 2.0) + _BLOCK_MARGIN
-    pitch = 2.0 * reach + 0.4
-    columns = max(1, int(math.ceil(math.sqrt(len(tiles)))))
-
-    positions = [((i % columns) * pitch, -(i // columns) * pitch, 0.0) for i in range(len(tiles))]
-    tile_attr = list(tiles)
-    side_attr = [-1] * len(tiles)
-    slot_attr = [0] * len(tiles)
-    count_attr = [0] * len(tiles)
+    positions = []
     edges = []
-    for (tile, side), others in sorted(per_side.items()):
-        centre = centre_of[tile]
-        for slot, other in enumerate(others):
-            edges.append((centre, len(positions)))
-            positions.append(positions[centre])
-            tile_attr.append(other)
-            side_attr.append(side)
-            slot_attr.append(slot)
-            count_attr.append(len(others))
-    return positions, edges, tile_attr, side_attr, slot_attr, count_attr
+    names = (ATTRIBUTE_NAME, SOURCE_ATTRIBUTE, VARIANT_ATTRIBUTE,
+             SIDE_ATTRIBUTE, ROW_ATTRIBUTE, COLUMN_ATTRIBUTE)
+    attributes = {name: [] for name in names}
+
+    def point(position, tile, side, row, column):
+        source, variant = identity[tile]
+        positions.append(position)
+        for name, value in zip(names, (tile, source, variant, side, row, column)):
+            attributes[name].append(value)
+        return len(positions) - 1
+
+    for row, source in enumerate(sorted(rows)):
+        for column, block in enumerate(rows[source]):
+            origin = (column * BLOCK_PITCH, -row * BLOCK_PITCH, 0.0)
+            centre = point(origin, block[0], -1, row, column)
+            for side, neighbour in enumerate(block[1:]):
+                if neighbour < 0:
+                    continue
+                dx, dy = _SIDE_OFFSETS[side]
+                edges.append((centre, point((origin[0] + dx * DISTANCE, origin[1] + dy * DISTANCE, 0.0),
+                                            neighbour, side, row, column)))
+    return positions, edges, attributes
 
 
 def _write_mesh(mesh, data):
-    positions, edges, tile, side, slot, count = data
+    positions, edges, attributes = data
     mesh.clear_geometry()
     mesh.from_pydata(positions, edges, [])
     mesh.update()
-    for name, values in ((ATTRIBUTE_NAME, tile), (SIDE_ATTRIBUTE, side),
-                         (SLOT_ATTRIBUTE, slot), (COUNT_ATTRIBUTE, count)):
+    for name in [a.name for a in mesh.attributes if a.name.startswith("wfc_")]:
+        if name not in attributes:
+            mesh.attributes.remove(mesh.attributes[name])
+    for name, values in attributes.items():
         attribute = mesh.attributes.get(name)
         if attribute is None or attribute.domain != "POINT" or attribute.data_type != "INT":
             if attribute is not None:
@@ -143,11 +261,12 @@ def _math(group, op, a, b=None, c=None, x=0.0, y=0.0):
 def _node_group(assets):
     group = bpy.data.node_groups.new(GROUP_NAME, "GeometryNodeTree")
     group[GROUP_PROP] = True
+    group[VERSION_PROP] = GROUP_VERSION
     group.interface.new_socket(name="Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
     _socket(group, "Tile Scale", TILE_SCALE, 0.01)
     _socket(group, "Neighbour Scale", NEIGHBOUR_SCALE, 0.01)
     _socket(group, "Distance", DISTANCE, 0.0)
-    _socket(group, "Spacing", SPACING, 0.0)
+    _socket(group, "Block Spacing", BLOCK_PITCH, 0.0)
     _socket(group, "Line Radius", LINE_RADIUS, 0.0)
     group.interface.new_socket(name="Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
 
@@ -167,25 +286,24 @@ def _node_group(assets):
 
     tile = attribute(ATTRIBUTE_NAME, -200)
     side = attribute(SIDE_ATTRIBUTE, -330)
-    slot = attribute(SLOT_ATTRIBUTE, -460)
-    count = attribute(COUNT_ATTRIBUTE, -590)
+    row = attribute(ROW_ATTRIBUTE, -460)
+    column = attribute(COLUMN_ATTRIBUTE, -590)
 
-    # The centre tile has side -1: it gets no offset and keeps full size.
+    # The mesh holds the default layout; Distance and Block Spacing move points away
+    # from it. The centre tile has side -1: it keeps full size and is not pushed out.
     has_side = _math(group, "GREATER_THAN", side, -0.5, x=-1250, y=-300)
     angle = _math(group, "MULTIPLY", side, math.pi / 2.0, x=-1250, y=-420)
     cos_a = _math(group, "COSINE", angle, x=-1050, y=-380)
     sin_a = _math(group, "SINE", angle, x=-1050, y=-480)
-    along = _math(group, "MULTIPLY", has_side, inp.outputs["Distance"], x=-1050, y=-250)
-    middle = _math(group, "MULTIPLY_ADD", count, 0.5, -0.5, x=-1250, y=-560)
-    centred = _math(group, "SUBTRACT", slot, middle, x=-1050, y=-600)
-    across = _math(group, "MULTIPLY", centred, inp.outputs["Spacing"], x=-850, y=-600)
-    across = _math(group, "MULTIPLY", across, has_side, x=-650, y=-600)
-    x_off = _math(group, "SUBTRACT",
-                  _math(group, "MULTIPLY", cos_a, along, x=-850, y=-300),
-                  _math(group, "MULTIPLY", sin_a, across, x=-850, y=-420), x=-650, y=-360)
-    y_off = _math(group, "ADD",
-                  _math(group, "MULTIPLY", sin_a, along, x=-850, y=-500),
-                  _math(group, "MULTIPLY", cos_a, across, x=-850, y=-700), x=-650, y=-520)
+    push = _math(group, "SUBTRACT", inp.outputs["Distance"], DISTANCE, x=-1250, y=-180)
+    radial = _math(group, "MULTIPLY", has_side, push, x=-1050, y=-250)
+    stretch = _math(group, "SUBTRACT", inp.outputs["Block Spacing"], BLOCK_PITCH, x=-1250, y=-680)
+    x_off = _math(group, "ADD",
+                  _math(group, "MULTIPLY", cos_a, radial, x=-850, y=-300),
+                  _math(group, "MULTIPLY", column, stretch, x=-850, y=-500), x=-650, y=-400)
+    y_off = _math(group, "SUBTRACT",
+                  _math(group, "MULTIPLY", sin_a, radial, x=-850, y=-600),
+                  _math(group, "MULTIPLY", row, stretch, x=-850, y=-700), x=-650, y=-650)
     offset = nodes.new("ShaderNodeCombineXYZ")
     offset.location = (-450, -400)
     links.new(x_off, offset.inputs["X"])
@@ -242,23 +360,20 @@ def _node_group(assets):
     return group
 
 
-def _modifier(obj):
-    for modifier in obj.modifiers:
-        group = getattr(modifier, "node_group", None)
-        if modifier.type == "NODES" and group is not None and group.get(GROUP_PROP):
-            return modifier
-    return None
-
-
 def build_relations(context, grid):
-    """Create or refresh the relations object of ``grid``; returns it."""
+    """Create or refresh the relations object of ``grid``; returns it.
+
+    A modifier whose node group predates the per-configuration layout gets a fresh
+    group; a current group is kept so its settings and added nodes survive.
+    """
     if not is_grid(grid):
         raise ValueError("Select a generated WFC grid")
     assets = find_assets(grid)
     if assets is None:
         raise ValueError("Grid has no tile collection")
-    ids, width, height = grid_tiles(grid)
-    data = layout(ids, width, height)
+    ids, width, height, sources, variants = grid_tiles(grid)
+    identity = tile_identities(ids, assets, sources, variants)
+    data = layout(ids, width, height, identity)
 
     obj = find_relations(grid)
     if obj is None:
@@ -271,11 +386,28 @@ def build_relations(context, grid):
         grid[OBJECT_PROP] = obj
     _write_mesh(obj.data, data)
 
-    modifier = _modifier(obj)
-    if modifier is None:
-        modifier = obj.modifiers.new(MODIFIER_NAME, "NODES")
-        modifier.node_group = _node_group(assets)
+    grid_group = next(mod.node_group for mod in grid.modifiers
+                      if mod.type == "NODES" and mod.node_group.get("wfc_node_group"))
+    appearance = grid_group.nodes.get(APPEARANCE_NODE)
+    collection = appearance.inputs["Collection"].default_value if appearance is not None else None
+    modifier = relations_modifier(obj)
+    if modifier is None or modifier.node_group.get(VERSION_PROP) != GROUP_VERSION:
+        group = _node_group(assets)
+        if collection is not None:
+            attach_appearance(group, collection, relations=True)
+        if modifier is None:
+            modifier = obj.modifiers.new(MODIFIER_NAME, "NODES")
+        else:
+            old = modifier.node_group
+            modifier.node_group = None
+            if old.users == 0:
+                bpy.data.node_groups.remove(old)
+        modifier.node_group = group
     else:
         modifier.node_group.nodes[COLLECTION_NODE].inputs["Collection"].default_value = assets
+        if collection is not None:
+            before = control_ids(modifier.node_group)
+            attach_appearance(modifier.node_group, collection, relations=True)
+            initialize_modifier(modifier, control_ids(modifier.node_group) - before)
     obj.update_tag()
     return obj
