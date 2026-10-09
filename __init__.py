@@ -3,7 +3,7 @@
 bl_info = {
     "name": "WFC Tile Grid",
     "author": "Benjamin Kleinert and contributors",
-    "version": (1, 2, 0),
+    "version": (1, 3, 0),
     "blender": (4, 5, 0),
     "location": "View3D > Sidebar > WFC",
     "description": "Overlapping image WFC with editable Geometry Nodes tile instances",

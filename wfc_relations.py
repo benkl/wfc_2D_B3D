@@ -10,9 +10,11 @@ neighbourhoods around the same centre tile are separate blocks. Nothing is fanne
 out: a block never lists alternative neighbours for one side.
 
 Blocks are grouped by source tile (the centre colour): one row per source, one
-column per neighbourhood, ordered by variant. Instances come from the grid's own
-tile collection, so edits to tile meshes show up here as well. Right is +X and up is
-+Y, as in the grid itself.
+column per neighbourhood, ordered by variant. Every point is also a real object that
+shares the object data of its tile in the grid's tile collection, so editing one block's
+tile in Edit Mode changes that tile in every block and in the grid. The objects follow
+the modifier's layout inputs through drivers. Right is +X and up is +Y, as in the grid
+itself.
 
 The mesh holds the default layout, with the centre of every block at
 ``(column * BLOCK_PITCH, -row * BLOCK_PITCH)`` and neighbours ``DISTANCE`` away. Point
@@ -49,6 +51,9 @@ OBJECT_PROP = "wfc_relations"      # grid -> relations object
 SOURCE_PROP = "wfc_relations_of"   # relations object -> grid
 MODIFIER_NAME = "WFC Relations"
 SOURCE_ATTRIBUTE = "wfc_source_id"
+REAL_PROP = "wfc_relation_tile"               # real tile object of the view -> tile id
+REAL_COLLECTION_PROP = "wfc_relation_tiles"   # relations object -> collection of those objects
+REAL_COLLECTION_NAME = "WFC Relations Tiles"
 VARIANT_ATTRIBUTE = "wfc_variant_id"
 SIDE_ATTRIBUTE = "wfc_rel_side"
 ROW_ATTRIBUTE = "wfc_rel_row"
@@ -354,10 +359,102 @@ def _node_group(assets):
 
     join = nodes.new("GeometryNodeJoinGeometry")
     join.location = (600, 0)
-    links.new(instance.outputs["Instances"], join.inputs["Geometry"])
     links.new(tube.outputs["Mesh"], join.inputs["Geometry"])
     links.new(join.outputs["Geometry"], out.inputs["Geometry"])
     return group
+
+
+def _hide_virtual_tiles(group):
+    """Stop the group from also emitting its tiles as virtual instances.
+
+    The real tile objects of the view replace them; tubes, outlines and labels stay.
+    """
+    for link in list(group.links):
+        node = link.from_node
+        if (node.bl_idname == "GeometryNodeInstanceOnPoints" and link.to_node.bl_idname == "GeometryNodeJoinGeometry"
+                and node.inputs["Instance"].is_linked
+                and node.inputs["Instance"].links[0].from_node.name == COLLECTION_NODE
+                and node.inputs["Pick Instance"].default_value):
+            group.links.remove(link)
+
+
+def _input_path(modifier, name):
+    """Data path, from the object, of the modifier input called ``name``."""
+    identifier = next(item.identifier for item in modifier.node_group.interface.items_tree
+                      if item.item_type == "SOCKET" and item.in_out == "INPUT" and item.name == name)
+    base = 'modifiers["%s"]' % modifier.name
+    if getattr(getattr(modifier, "properties", None), "inputs", None) is not None:
+        return "%s.properties.inputs.%s.value" % (base, identifier)
+    return '%s["%s"]' % (base, identifier)
+
+
+def _drive(relations, real, prop, index, expression, paths):
+    driver = real.driver_add(prop, index).driver
+    driver.type = "SCRIPTED"
+    driver.expression = expression
+    for name, path in paths.items():
+        variable = driver.variables.new()
+        variable.name = name
+        variable.type = "SINGLE_PROP"
+        variable.targets[0].id = relations
+        variable.targets[0].data_path = path
+
+
+def _sync_tile_objects(context, relations, modifier, assets, attributes):
+    """Give every point of the relations view a real, selectable tile object.
+
+    Each object shares the object data (mesh, materials) of the tile with the point's
+    tile id, so an Edit Mode change shows in the grid, in every block and in the tile
+    collection. Position and scale follow the node group's Tile Scale, Neighbour Scale,
+    Distance and Block Spacing inputs through drivers that repeat the node maths. The
+    objects are children of ``relations`` and are rebuilt on every refresh; the tile
+    data is never touched.
+    """
+    parent = relations.users_collection[0] if relations.users_collection else context.scene.collection
+    collection = relations.get(REAL_COLLECTION_PROP)
+    if not isinstance(collection, bpy.types.Collection):
+        collection = bpy.data.collections.new(REAL_COLLECTION_NAME)
+        relations[REAL_COLLECTION_PROP] = collection
+    if collection.name not in parent.children:
+        parent.children.link(collection)
+    for old in [obj for obj in collection.objects if REAL_PROP in obj]:
+        bpy.data.objects.remove(old, do_unlink=True)
+
+    tiles = {}
+    for tile in assets.objects:
+        index = tile.get(TILE_PROP)
+        if isinstance(index, int) and tile.data is not None:
+            tiles[index] = tile
+
+    paths = {name: _input_path(modifier, name)
+             for name in ("Tile Scale", "Neighbour Scale", "Distance", "Block Spacing")}
+    for vertex, tile_id in enumerate(attributes[ATTRIBUTE_NAME]):
+        tile = tiles.get(tile_id)
+        if tile is None:
+            continue
+        side = attributes[SIDE_ATTRIBUTE][vertex]
+        row = attributes[ROW_ATTRIBUTE][vertex]
+        column = attributes[COLUMN_ATTRIBUTE][vertex]
+        real = bpy.data.objects.new(tile.name, tile.data)
+        real[REAL_PROP] = tile_id
+        real.parent = relations
+        collection.objects.link(real)
+
+        variables = {"spacing": paths["Block Spacing"]}
+        x, y = "%d*spacing" % column, "%d*spacing" % -row
+        scale = {"tile": paths["Tile Scale"]}
+        factor = "tile"
+        if side >= 0:
+            dx, dy = _SIDE_OFFSETS[side]
+            variables["distance"] = paths["Distance"]
+            x += " + %d*distance" % dx
+            y += " + %d*distance" % dy
+            scale["neighbour"] = paths["Neighbour Scale"]
+            factor = "tile*neighbour"
+        _drive(relations, real, "location", 0, x, variables)
+        _drive(relations, real, "location", 1, y, variables)
+        for axis in range(3):
+            _drive(relations, real, "scale", axis, factor, scale)
 
 
 def build_relations(context, grid):
@@ -393,6 +490,7 @@ def build_relations(context, grid):
     modifier = relations_modifier(obj)
     if modifier is None or modifier.node_group.get(VERSION_PROP) != GROUP_VERSION:
         group = _node_group(assets)
+        _hide_virtual_tiles(group)
         if collection is not None:
             attach_appearance(group, collection, relations=True)
         if modifier is None:
@@ -405,9 +503,11 @@ def build_relations(context, grid):
         modifier.node_group = group
     else:
         modifier.node_group.nodes[COLLECTION_NODE].inputs["Collection"].default_value = assets
+        _hide_virtual_tiles(modifier.node_group)
         if collection is not None:
             before = control_ids(modifier.node_group)
             attach_appearance(modifier.node_group, collection, relations=True)
             initialize_modifier(modifier, control_ids(modifier.node_group) - before)
     obj.update_tag()
+    _sync_tile_objects(context, obj, modifier, assets, data[2])
     return obj
