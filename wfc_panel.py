@@ -1,108 +1,120 @@
+"""Geometry Nodes WFC controls in the 3D View sidebar."""
+
 import bpy
-from bpy.types import (Panel, PropertyGroup)
-from bpy.props import (FloatVectorProperty, IntProperty,
-                       BoolProperty, PointerProperty, StringProperty, EnumProperty)
+from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, IntProperty, PointerProperty
+from bpy.types import Panel, PropertyGroup
+
+from .wfc_geometry import is_grid
 
 
-class WFC_PT_Panel(bpy.types.Panel):
-    bl_idname = "WFC_PT_Panel"
+class WFC_Settings(PropertyGroup):
+    source: PointerProperty(
+        name="Pattern Source", type=bpy.types.Image,
+        description="Image used to learn overlapping color patterns",
+    )
+    pattern_width: IntProperty(name="Pattern X", default=2, min=1, max=32)
+    pattern_height: IntProperty(name="Pattern Y", default=2, min=1, max=32)
+    output_width: IntProperty(name="Output X", default=30, min=1, max=2048)
+    output_height: IntProperty(name="Output Y", default=30, min=1, max=2048)
+    rotate: BoolProperty(name="Rotate", description="Learn rotations of the source image")
+    flip_horizontal: BoolProperty(name="Flip Horizontal")
+    flip_vertical: BoolProperty(name="Flip Vertical")
+    seed: IntProperty(name="Seed", default=0)
+    attempts: IntProperty(name="Attempts", default=20, min=1, max=1000,
+                          description="Retry with a new deterministic random stream on contradiction")
+    tile_mode: EnumProperty(
+        name="Tiles",
+        description="How solved cells become editable tiles",
+        items=(
+            ("COLOR", "By Color", "One tile per color"),
+            ("EDGES", "By Neighbors",
+             "Separate tile for each color combined with its left, right, lower and upper neighbors"),
+            ("EDGES_CORNERS", "By Neighbors + Corners",
+             "Like By Neighbors, also including the four diagonal neighbors"),
+        ),
+        default="COLOR",
+    )
+    outline_color: FloatVectorProperty(
+        name="Outline Color", subtype="COLOR", size=4, min=0.0, max=1.0,
+        default=(0.07, 0.09, 0.14, 1.0),
+        description="Color of the outline drawn around each tile",
+    )
+    font_color: FloatVectorProperty(
+        name="Font Color", subtype="COLOR", size=4, min=0.0, max=1.0,
+        default=(1.0, 1.0, 1.0, 1.0),
+        description="Color of the tile ID numbers",
+    )
+
+
+class WFC_PT_Panel(Panel):
+    bl_idname = "WFC_PT_panel"
     bl_label = "Wave Function Collapse"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "Misc"
-
-    # def draw_header(self, context):
-    #     layout = self.layout
-    #     layout.label(text="Wave Function Collapse")
+    bl_category = "WFC"
 
     def draw(self, context):
         layout = self.layout
-        patternbox = layout.box()
-        patternbox.label(text="2D Image Collapse")
-        patternbox.operator(
-            "image.open", text="Add Pattern Source", icon="PLUS")
-        patternbox.prop(context.scene.wfc_vars, "wfc_images")
-        patternrow = patternbox.row()
-        patternrow.prop(context.scene.wfc_vars, "wfc_patternx")
-        patternrow.prop(context.scene.wfc_vars, "wfc_patterny")
-        patternbox.prop(context.scene.wfc_vars, "wfc_rot")
-        patternbox.prop(context.scene.wfc_vars, "wfc_flipv")
-        patternbox.prop(context.scene.wfc_vars, "wfc_fliph")
-        patternbox.prop(context.scene.wfc_vars, "wfc_border")
-        patternbox.prop(context.scene.wfc_vars, "wfc_borderrule")
-        patternbox.prop(context.scene.wfc_vars, "wfc_resultx")
-        patternbox.prop(context.scene.wfc_vars, "wfc_resulty")
-        patternbox.prop(context.scene.wfc_vars, "wfc_loopcount")
-        patternbox.operator("object.wfc_ot_runner", icon="PLAY")
-        placerbox = layout.box()
-        placerbox.label(text="2D Module Instancer")
-        placerbox.operator(
-            "image.open", text="Add Placer Source", icon="PLUS")
-        placerbox.prop(context.scene.wfc_vars, "wfc_images_placer")
-        placerbox.operator("object.wfc_ot_placer", icon="PLAY")
+        active = context.active_object
+        label = "Regenerate Selected Grid" if is_grid(active) else "Generate Tile Grid"
+        col = layout.column(align=True)
+        col.scale_y = 1.3
+        col.operator("object.wfc_geometry_generate", text=label, icon="GEOMETRY_NODES")
+        col.operator("object.wfc_show_relations", icon="NODETREE")
+        layout.label(text="Edit tiles in the generated WFC Tiles collection")
 
 
-class WFC_UI_Variables(PropertyGroup):
-    def wfc_img_list(self, context):
-        return [(img.name,)*3 for img in bpy.data.images]
+class WFC_PT_SourcePanel(Panel):
+    bl_idname = "WFC_PT_source"
+    bl_label = "Source & Patterns"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "WFC"
+    bl_parent_id = "WFC_PT_panel"
 
-    wfc_images: EnumProperty(
-        name="Pattern Source",
-        description="Selected source pattern image, PNG strongly recommended",
-        items=wfc_img_list
-    )
-    wfc_images_placer: EnumProperty(
-        name="Placer Source",
-        description="Selected pattern image to place",
-        items=wfc_img_list
-    )
-    wfc_loopcount: IntProperty(
-        name="Loop count",
-        default=1,
-        description="Generate multiple outputs, can take forever."
-    )
-    wfc_patternx: IntProperty(
-        name="Pattern X",
-        default=3,
-        description="This defines how many neighbours are taken into account for rule creation. X-Dimension. 2-3 Recommended."
-    )
-    wfc_patterny: IntProperty(
-        name="Pattern Y",
-        default=3,
-        description="This defines how many neighbours are taken into account for rule creation. Y-Dimension. 2-3 Recommended."
-    )
-    wfc_resultx: IntProperty(
-        name="Output X",
-        default=30,
-        description="Output image X-Dimension, <30 recommended"
-    )
-    wfc_resulty: IntProperty(
-        name="Output Y",
-        default=30,
-        description="Output image Y-Dimension, <30 recommended"
-    )
-    wfc_borderrule: IntProperty(
-        name="Border rule index",
-        default=0,
-        description="This is experiemental and can run out of bounds."
-    )
-    wfc_fliph: BoolProperty(
-        name="Flip patterns H",
-        default=False,
-        description="Small input images recommended, can severly prolong collapse. Adds horizontally flipped variants of all found patterns."
-    )
-    wfc_flipv: BoolProperty(
-        name="Flip patterns V",
-        default=False,
-        description="Small input images recommended, can severly prolong collapse. Adds vertically flipped variants of all found patterns."
-    )
-    wfc_rot: BoolProperty(
-        name="Rotate patterns",
-        default=False,
-        description="Small input images recommended, can severly prolong collapse. Adds rotated variants of all found patterns."
-    )
-    wfc_border: BoolProperty(
-        name="Constrain grid borders",
-        default=False,
-        description="Create a border with the n-th rule found. Select below."
-    )
+    def draw(self, context):
+        layout = self.layout
+        settings = context.scene.wfc_settings
+        layout.prop(settings, "source")
+        row = layout.row(align=True)
+        row.prop(settings, "pattern_width")
+        row.prop(settings, "pattern_height")
+        options = layout.column(align=True)
+        options.prop(settings, "rotate")
+        row = options.row(align=True)
+        row.prop(settings, "flip_horizontal")
+        row.prop(settings, "flip_vertical")
+        layout.prop(settings, "tile_mode")
+
+
+class WFC_PT_SolverPanel(Panel):
+    bl_idname = "WFC_PT_solver"
+    bl_label = "Grid & Solver"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "WFC"
+    bl_parent_id = "WFC_PT_panel"
+
+    def draw(self, context):
+        layout = self.layout
+        settings = context.scene.wfc_settings
+        row = layout.row(align=True)
+        row.prop(settings, "output_width")
+        row.prop(settings, "output_height")
+        layout.prop(settings, "seed")
+        layout.prop(settings, "attempts")
+
+
+class WFC_PT_AppearancePanel(Panel):
+    bl_idname = "WFC_PT_appearance"
+    bl_label = "Tile Appearance"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "WFC"
+    bl_parent_id = "WFC_PT_panel"
+
+    def draw(self, context):
+        layout = self.layout
+        settings = context.scene.wfc_settings
+        layout.prop(settings, "outline_color")
+        layout.prop(settings, "font_color")

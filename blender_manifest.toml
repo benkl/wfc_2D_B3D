@@ -1,0 +1,13 @@
+schema_version = "1.0.0"
+id = "wfc_tile_grid"
+version = "1.1.0"
+name = "WFC Tile Grid"
+tagline = "Generate editable tile grids from image patterns"
+maintainer = "Benjamin Kleinert and contributors"
+type = "add-on"
+website = "https://github.com/benkl/wfc_2D_B3D"
+blender_version_min = "4.5.0"
+license = ["SPDX:MIT"]
+
+[build]
+paths = ["__init__.py", "wfc_panel.py", "wfc_geometry_operator.py", "wfc_geometry.py", "wfc_appearance.py", "wfc_relations.py", "wfc_solver.py", "LICENSE", "README.md"]

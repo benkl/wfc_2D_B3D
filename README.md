@@ -1,31 +1,30 @@
-This is an experimental add-on for Blender implementing 2D Wave Function Collapse. For now enjoy exploring. (wfc explanation and original concept: https://github.com/mxgmn/WaveFunctionCollapse)
+# WFC Tile Grid
 
-The wfc panel is located in the n-panel under ‘misc’.
+A Blender 4.5+ extension that learns overlapping color patterns from an image, solves a 2D grid with Wave Function Collapse, and instances editable tiles using Geometry Nodes. The collapse runs in Python; Geometry Nodes handles the resulting geometry. No external Python packages or services are needed.
 
-Add a Pattern source. [png, small size recommended]
+## Install
 
-In the Pattern Source dropdown select the image you added.
+From the add-on directory, build an installable extension ZIP with Blender:
 
-Pattern X and Pattern Y are used to set the pattern rule width and height. [2 * 2, 3 * 3 recommended]
+```sh
+mkdir -p dist
+blender --background --command extension build --source-dir . --output-dir dist
+```
 
-The rotation and flipping checkboxes can be set to transform the created rules [eg 2 * 2 rules from a png], rotating them or flipping them.
+In Blender: **Edit → Preferences → Get Extensions → Install from Disk**, select `dist/wfc_tile_grid-1.1.0.zip`, and enable it. Alternatively, install this source directory as an add-on through your Blender scripts path. Restart Blender after replacing an installed version.
 
-Constrain grid borders is used to force the first pattern being detected to be used around the grid borders. Leaving a uniform spot in the top right of your png source can serve to create a blank rule, generating grid contained patterns.
+## Generate
 
-Border rule index box can be used to set the rule selected to create the grid borders mentioned above. [This is an experimental feature]
+1. Load a small source image with **Image → Open** in Blender's Image Editor. In the 3D View sidebar, open the **WFC** tab and select it as **Pattern Source**.
+2. Set **Pattern X/Y** (2×2 or 3×3 is a good start), **Output X/Y**, and optional rotation/flips. The source image must be at least as large as the pattern in each dimension.
+3. Set **Seed** for a repeatable result and **Attempts** for retries after contradictions.
+4. Choose **Tiles**: *By Color* makes one tile per color. *By Neighbors* makes a separate tile for each color combined with the colors of its left, right, lower and upper neighbors, so edges, ends and junctions get their own tile to model. *By Neighbors + Corners* also includes the four diagonals. Cells on the output border count as having no neighbor on that side. Each tile type is a mesh in the tile collection; the count can grow quickly, and more than 256 tile types is rejected. Click **Generate Tile Grid**.
+5. The selected `WFC Grid` object has a Geometry Nodes modifier and an integer point attribute named `wfc_tile_id`. The generated `WFC Tiles` collection holds source meshes named `Tile 000`, `Tile 001`, etc. Edit or replace their mesh data to change the instanced geometry. Each tile stores its identity in the `wfc_tile_key` custom property. **Tile Scale** in the modifier changes tile size; grid spacing remains one Blender unit.
+6. Select the generated grid and click **Regenerate Selected Grid** to solve again using current settings while retaining editable tile assets. Edited tiles are reused when their `wfc_tile_key` appears again. Tiles that are not used by the current result are kept at the end of the collection for future runs, including when you switch **Tiles** mode. Deselect the grid to create a separate output.
+7. Click **Show Tile Relations** with the grid selected to see which tiles touch which. This adds a `WFC Relations` object with its own Geometry Nodes modifier. Each tile in the grid gets a block. The tile sits in the middle, and the tiles found next to it in the grid are placed on the matching side (right is +X, up is +Y) and joined to it by a line. The neighbors are instances of your own tile meshes, so edits to them show up here too. Relations come from the solved grid, so a pairing the source image allows but the grid never produced is not drawn. **Neighbour Scale**, **Distance**, **Spacing** and **Line Radius** in the modifier change the layout. Regenerating the grid refreshes the view.
 
-Output X and Y are used to set the size of the image you want to generate.
+The sample wraps at its edges when learning rules; the output does not wrap. Color channels are compared at four decimal places. Output cells are colored by the origin of each solved overlapping pattern. The palette index is an instance index, not a material selection attribute. A higher pattern size or a noisy image can create many unique rules and make solving slow or contradictory. Try a smaller, cleaner source or a different seed if every attempt fails.
 
-Loop count can be used to loop the whole operation. Should be used with caution.
+This extension is a clean cutover from the experimental Blender 2.80 add-on: the old image-only **Collapse** and neighborhood-plane **Module Instancer** operators are not packaged. Existing generated objects are ordinary Blender data and remain in saved scenes; old scene settings are not migrated.
 
-Press Collapse to create an output image data block. Open the image viewer to browse through the “MyImage” results once it has completed and save them externally.
-
-The module instancer is a seperate operator that can take any input image and create a set of seperate instances for every colour present in the image and it’s neighbouring colours. Adding a placer source allows you to load an external image, if you dont have an image from the previous generation step (MyImage e.g.). Select it in the dropdown and hit place to get a set of linked planes that can be modified to the desired geometry (or by linking your meshes). Hitting place with a different image of the same generation process will reuse existing tiles.
-
-Toggle the system console to see progress.
-
-Please feel free to improve the code and commit!
-
-![Interface](https://blenderartists.org/uploads/default/original/4X/8/6/d/86dff233e6cc57d7a82effabe202ab51f4d9c896.png)
-
-![Example Setup](https://blenderartists.org/uploads/default/original/4X/a/2/e/a2ebf70813519d612b611be6e4da00e2b150f433.png)
+Original WFC concept: [Maxim Gumin's WaveFunctionCollapse](https://github.com/mxgmn/WaveFunctionCollapse). Original Blender implementation: Benjamin Kleinert, with inspiration from Victor Le's Python implementation. License: MIT.
